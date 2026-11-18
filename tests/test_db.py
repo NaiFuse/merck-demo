@@ -65,12 +65,14 @@ def test_tenders(con):
 
 def test_market_cells(con):
     con.execute(
-        "INSERT INTO market_cells VALUES ('academia', 'lab_consumables', 'dach', 2025, 'A', 90, 100, 110, 'C')"
+        "INSERT INTO market_cells (segment, category, cluster, year, method, value_low, value_base, value_high, grade) "
+        "VALUES ('academia', 'lab_consumables', 'dach', 2025, 'A', 90, 100, 110, 'C')"
     )
     assert table_counts(con)["market_cells"] == 1
     with pytest.raises(duckdb.ConstraintException):  # one row per segment/category/cluster/year/method
         con.execute(
-            "INSERT INTO market_cells VALUES ('academia', 'lab_consumables', 'dach', 2025, 'A', 1, 2, 3, 'C')"
+            "INSERT INTO market_cells (segment, category, cluster, year, method, value_low, value_base, value_high, grade) "
+            "VALUES ('academia', 'lab_consumables', 'dach', 2025, 'A', 1, 2, 3, 'C')"
         )
 
 

@@ -1,0 +1,49 @@
+# Research-base sources (milestone 4): country coverage and the exact API queries of each connector.
+# Country codes are ISO-2 (GB for the UK, GR for Greece); connectors map to source-specific codes.
+
+# "Europe" denominator for cluster shares: EU27 + UK, Switzerland, Norway, Iceland (the peers' "Europe"
+# geographic segments; Thermo Fisher puts Middle East/Africa in "Other regions").
+europe_countries: [AT, BE, BG, CY, CZ, DE, DK, EE, GR, ES, FI, FR, HR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO,
+                   SE, SI, SK, GB, CH, "NO", IS]
+
+first_year: 2015
+
+eurostat:
+  base_url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data
+  # Academic R&D performers: higher education (HES), government incl. public research institutes (GOV),
+  # private non-profit research institutes (PNP). Business enterprise (BES) is out of scope.
+  rd_expenditure:
+    dataset: rd_e_gerdtot
+    filters: {unit: MIO_EUR, sectperf: [HES, GOV, PNP]}
+  researchers:
+    dataset: rd_p_persocc
+    filters: {unit: HC, prof_pos: RSE, sex: T, sectperf: [HES, GOV]}
+
+# Eurostat has no UK data after 2019 (and its UK HERD predates ONS's 2018 revision, ~30% lower). The UK series
+# for HES/GOV therefore comes from OECD MSTI (official SDMX API), in GBP, converted with ECB annual average rates.
+oecd_msti:
+  base_url: https://sdmx.oecd.org/public/rest/data/OECD.STI.STP,DSD_MSTI@DF_MSTI,
+  countries: {GB: GBR}
+  measures:
+    H:    {metric: rd_expenditure, sector: HES, unit: XDC}   # HERD, national currency
+    GV:   {metric: rd_expenditure, sector: GOV, unit: XDC}   # GOVERD
+    H_RS: {metric: researchers, sector: HES, unit: PS}       # headcount ('persons')
+    G_RS: {metric: researchers, sector: GOV, unit: PS}
+
+cordis:
+  # Official bulk downloads (data.europa.eu, EC reuse notice). Not an API, not scraping.
+  files:
+    h2020: https://cordis.europa.eu/data/cordis-h2020projects-csv.zip
+    horizon: https://cordis.europa.eu/data/cordis-HORIZONprojects-csv.zip
+  # Academia-type participants: higher/secondary education and research organisations.
+  activity_types: [HES, REC]
+
+openalex:
+  base_url: https://api.openalex.org/works
+  last_year: 2025          # last complete publication year
+  # Works with at least one academia-type institution, primary topic in a wet-lab domain/field.
+  # Two disjoint queries per year (OpenAlex cannot OR across filter keys); counts are summed.
+  institution_types: [education, healthcare, government, facility, nonprofit]
+  queries:
+    life_health: "primary_topic.domain.id:1|4"            # Life Sciences, Health Sciences
+    chemistry_materials: "primary_topic.field.id:15|16|25"  # Chemical Engineering, Chemistry, Materials Science

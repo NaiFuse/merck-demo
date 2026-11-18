@@ -2,10 +2,10 @@
 
     uv run python -m src.facts_store load [--dry-run]
 
-`load` rebuilds every row from the offline caches (EDGAR cache, PDF extraction cache, assumption YAMLs) and the
-peer restatement, then writes them in one short transaction. No network or LLM calls happen here.
-Idempotent: a document's facts are replaced as a whole; assumptions are replaced per owner prefix.
-Never touches the tenders / tender_awards tables.
+`load` rebuilds every row from the offline caches (EDGAR, PDF extraction, Eurostat, OECD MSTI, OpenAlex, CORDIS,
+assumption YAMLs), the peer restatement and the market model, then writes them in one short transaction. No network
+or LLM calls happen here. Idempotent: a document's facts are replaced as a whole; assumptions are replaced per owner
+prefix; market_cells are replaced per (segment, category). Never touches the tenders / tender_awards tables.
 """
 
 from __future__ import annotations
@@ -62,9 +62,24 @@ def check_rows(rows: list[FactRow]) -> None:
             raise ValueError(f"quote does not contain value {r.value} {r.unit}: {r.quote[:200]}")
 
 
-def save(facts: list[FactRow], assumptions: list[AssumptionRow] = (), db_path: Path | str | None = None) -> dict:
+MARKET_CELL_COLUMNS = ["segment", "category", "cluster", "year", "method", "value_low", "value_base", "value_high",
+                       "grade", "status", "gap_pct", "note", "computed_at"]
+
+
+def check_cells(cells: list[dict]) -> None:
+    for c in cells:
+        if c["grade"] not in ("A", "B", "C"):
+            raise ValueError(f"bad grade: {c}")
+        if c["grade"] == "C" and not (c["value_low"] is not None and c["value_high"] is not None
+                                      and c["value_low"] < c["value_high"]):
+            raise ValueError(f"grade C cell must be a range (rule 3): {c}")
+
+
+def save(facts: list[FactRow], assumptions: list[AssumptionRow] = (), db_path: Path | str | None = None,
+         market_cells: list[dict] = ()) -> dict:
     """Write one batch. Returns counts. All inputs must be fully built before this is called (rule 7)."""
     check_rows(facts)
+    check_cells(list(market_cells))
     docs: dict[tuple[str, str], datetime] = {}
     for r in facts:
         k = (r.source, r.url_or_path)
@@ -84,11 +99,12 @@ def save(facts: list[FactRow], assumptions: list[AssumptionRow] = (), db_path: P
                     doc_ids[(source, url)] = con.execute(
                         "INSERT INTO documents (source, url_or_path, retrieved_at) VALUES (?, ?, ?) RETURNING id",
                         [source, url, ts]).fetchone()[0]
-            con.executemany(
-                "INSERT INTO facts (document_id, entity, period, metric, value, unit, region, segment, quote, grade) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [[doc_ids[(r.source, r.url_or_path)], r.entity, r.period, r.metric, r.value, r.unit, r.region,
-                  r.segment, r.quote, r.grade] for r in facts])
+            if facts:
+                con.executemany(
+                    "INSERT INTO facts (document_id, entity, period, metric, value, unit, region, segment, quote, grade) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [[doc_ids[(r.source, r.url_or_path)], r.entity, r.period, r.metric, r.value, r.unit, r.region,
+                      r.segment, r.quote, r.grade] for r in facts])
             if assumptions:
                 # replace everything under each owner prefix ('thermo_fisher.', 'market.', ...) so retired keys go too
                 prefixes = sorted({a.key.split(".", 1)[0] + "." for a in assumptions})
@@ -97,28 +113,42 @@ def save(facts: list[FactRow], assumptions: list[AssumptionRow] = (), db_path: P
                     "INSERT INTO assumptions (key, value_low, value_base, value_high, source, grade, note) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?)",
                     [[a.key, a.value_low, a.value_base, a.value_high, a.source, a.grade, a.note] for a in assumptions])
+            if market_cells:
+                for seg, cat in sorted({(c["segment"], c["category"]) for c in market_cells}):
+                    con.execute("DELETE FROM market_cells WHERE segment = ? AND category = ?", [seg, cat])
+                con.executemany(
+                    f"INSERT INTO market_cells ({', '.join(MARKET_CELL_COLUMNS)}) "
+                    f"VALUES ({', '.join('?' * len(MARKET_CELL_COLUMNS))})",
+                    [[c[k] for k in MARKET_CELL_COLUMNS] for c in market_cells])
             con.execute("COMMIT")
         except Exception:
             con.execute("ROLLBACK")
             raise
         return {"documents": len(docs), "facts": len(facts), "assumptions": len(assumptions),
-                "table_counts": table_counts(con)}
+                "market_cells": len(market_cells), "table_counts": table_counts(con)}
 
 
-def build_all() -> tuple[list[FactRow], list[AssumptionRow]]:
-    """Every row from caches + config (offline)."""
+def base_facts() -> list[FactRow]:
+    """Source facts from the offline caches: EDGAR, verified PDF extractions, research-base connectors."""
     from src.connectors import edgar
     from src.extract import pdf
-    from src.models import peer_restatement
+    from src.models import research_base
 
     facts, problems = edgar.load_all(online=False)
     if problems:
         raise RuntimeError("EDGAR cross-check failed: " + "; ".join(problems))
     accepted, _ = pdf.verify_all_cached()
-    facts += accepted
-    result = peer_restatement.run_all(facts)
-    facts += result.fact_rows()
-    return facts, result.assumption_rows()
+    return facts + accepted + research_base.load_facts(online=False)
+
+
+def build_all() -> tuple[list[FactRow], list[AssumptionRow], list[dict]]:
+    """Every row from caches + config (offline): facts, assumptions, market cells."""
+    from src.models import market_model
+
+    facts = base_facts()
+    peers, model = market_model.build(facts)
+    facts += peers.fact_rows() + model.fact_rows()
+    return facts, peers.assumption_rows() + model.assumption_rows(), model.cell_rows()
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -127,13 +157,14 @@ def main(argv: list[str] | None = None) -> None:
     ld = sub.add_parser("load")
     ld.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
-    facts, assumptions = build_all()   # all reads/verification before the connection opens
-    print(f"built {len(facts)} facts, {len(assumptions)} assumptions")
+    facts, assumptions, cells = build_all()   # all reads/verification before the connection opens
+    print(f"built {len(facts)} facts, {len(assumptions)} assumptions, {len(cells)} market cells")
     if args.dry_run:
         check_rows(facts)
-        print("dry run: rule-1 checks passed, nothing written")
+        check_cells(cells)
+        print("dry run: rule-1 and rule-3 checks passed, nothing written")
         return
-    out = save(facts, assumptions)
+    out = save(facts, assumptions, market_cells=cells)
     for t, n in out["table_counts"].items():
         print(f"{t:<14}{n:>8}")
 

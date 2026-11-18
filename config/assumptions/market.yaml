@@ -1,18 +1,18 @@
 # Shared drivers for the peer restatement (step 6).
 
-# Share of a peer's Europe revenue in each demo cluster (low / base / high). Grade C placeholders from approximate
-# GERD (R&D spend) weights across Europe; replace with Eurostat rd_e_gerdtot when the eurostat connector lands
-# (milestone 4). The remainder (~22%) is Southern/Eastern Europe, outside the demo clusters.
-clusters:
-  dach:
-    {key: cluster_share_dach, low: 0.28, base: 0.35, high: 0.42, grade: C,
-     source: "placeholder: approx. GERD weight DE+AT+CH in Europe; to be replaced by Eurostat"}
-  france_benelux:
-    {key: cluster_share_france_benelux, low: 0.17, base: 0.21, high: 0.25, grade: C,
-     source: "placeholder: approx. GERD weight FR+BE+NL+LU in Europe; to be replaced by Eurostat"}
-  uk_ireland_nordics:
-    {key: cluster_share_uk_ireland_nordics, low: 0.18, base: 0.22, high: 0.27, grade: C,
-     source: "placeholder: approx. GERD weight GB+IE+SE+NO+DK+FI+IS in Europe; to be replaced by Eurostat"}
+# Share of a peer's Europe revenue in each demo cluster (step 6) = the cluster's share of Europe academic R&D,
+# derived at run time by src/models/research_base.py from Eurostat / OECD MSTI / OpenAlex / CORDIS facts:
+# base = R&D-spend share, low/high = min/max over the 4 indicators, grade B. Germany's share of DACH (DACH anchor)
+# is derived the same way. Europe = EU27 + UK, CH, NO, IS (config/research_sources.yaml).
+cluster_shares_from: research_base
+research_base:
+  base_indicator: rd_spend
+  indicators:
+    rd_spend:     {window: [2021, 2023]}   # 2023 = last year observed for all three clusters (UK via OECD)
+    researchers:  {window: [2021, 2023]}   # headcount; UK HES researchers last published for 2019 (carried)
+    publications: {window: [2023, 2025]}
+    eu_grants:    {window: [2017, 2020]}   # H2020 years with UK and CH fully associated (Horizon Europe 2021-23
+                                           # excludes both, so later years would understate them)
 
 # USD -> EUR: average of the 12 ECB monthly reference rates of the fiscal year (grade A, src/connectors/ecb_fx.py)
 fx:
@@ -28,9 +28,7 @@ monte_carlo:
 # Anchor = register revenue in DS-type categories x Germany share x academia share, compared with the estimate's
 # Germany-equivalent (DACH estimate x Germany share of DACH).
 dach_anchor:
-  germany_share_of_dach:
-    {key: germany_share_of_dach, low: 0.72, base: 0.77, high: 0.82, grade: C,
-     source: "placeholder: approx. GERD weight DE / (DE+AT+CH); replace with Eurostat"}
+  # germany_share_of_dach is added at run time by research_base (grade B, see cluster_shares_from)
   fisher_academic_share:
     {key: fisher_gmbh_academic_share, low: 0.25, base: 0.32, high: 0.40, grade: C,
      source: "estimate: Fisher Scientific GmbH names Academic one of its two largest segments (FY2025, +16.8%)"}
@@ -40,3 +38,48 @@ dach_anchor:
   vwr_academic_share:
     {key: vwr_gmbh_academic_share, low: 0.12, base: 0.17, high: 0.22, grade: C,
      source: "Avantor Europe E&G 10% + part of Healthcare 10% (FY2023, disclosed), concentrated in the lab channel"}
+
+# ---------------------------------------------------------------- market model (src/models/market_model.py)
+# Method B – demand side: academic R&D spend x DS-type consumables intensity.
+#   B = intensity x (HES + w_gov x GOV + w_pnp x PNP) x (1 + non-R&D uplift)
+# R&D spend per country/sector/year from the research base (EUR m, nominal). Years after a series' last
+# observation are nowcast at the cluster's own nominal CAGR over growth_window + growth_offset.
+demand:
+  years: [2019, 2025]
+  growth_window: [2019, 2023]
+  growth_offset:
+    {key: nowcast_growth_offset, low: -0.02, base: 0.0, high: 0.02, grade: C,
+     source: "estimate: nowcast growth = cluster's observed 2019-23 nominal CAGR + offset (percentage points)"}
+  intensity:
+    {key: ds_consumables_intensity, low: 0.010, base: 0.018, high: 0.035, grade: C,
+     source: "estimate: DS-type consumables purchases per EUR of academic R&D spend",
+     note: "Decomposition: other current costs 30-44% of HERD/GOVERD (Eurostat rd_e_gerdcost, latest year, AT/BE/DE/DK/
+       IS/NO/SE; FR HES 16% outlier) x purchased lab supplies 8-15% of other current costs (field-averaged; the rest is
+       overheads, rent, energy, IT, travel, services) x DS-category share of lab supplies 40-60% (excl. animals, gases,
+       small equipment, diagnostics kits, PPE). Product 1.0%-4.0%, base 0.33 x 0.11 x 0.5 = 1.8%."}
+  sector_weights:
+    HES: {key: w_sector_hes, low: 1.0, base: 1.0, high: 1.0, grade: A, source: "reference sector (intensity is per EUR of HERD)"}
+    GOV:
+      {key: w_sector_gov, low: 0.6, base: 0.8, high: 1.0, grade: C,
+       source: "estimate: GOVERD consumables intensity relative to HERD; GOV includes defence, space and engineering labs
+         (FORD2 is 35-60% of GOVERD in DE/BE/FI, Eurostat rd_e_gerdsc) next to life-science institutes"}
+    PNP:
+      {key: w_sector_pnp, low: 0.5, base: 0.8, high: 1.0, grade: C,
+       source: "estimate: private non-profit institutes (e.g. medical research charities' institutes) vs. HERD intensity"}
+  non_rd_uplift:
+    {key: non_rd_uplift, low: 0.04, base: 0.10, high: 0.18, grade: C,
+     source: "estimate: DS-type purchases outside R&D budgets – university teaching labs and hospital non-diagnostic labs
+       (Merck counts hospitals as Academia); R&D statistics do not include them"}
+
+# Method A – supply side: restated peers (Thermo Fisher + Avantor, P10-P90 draws per cluster) plus everyone else.
+#   A = (TMO + Avantor) / (1 - others_share)
+supply:
+  year: 2025
+  others_share:
+    {key: others_share, low: 0.55, base: 0.65, high: 0.75, grade: C,
+     source: "estimate: share of the DS-type academia market not sold by Thermo Fisher or Avantor – Merck's own direct
+       sales, specialists (Carl Roth, Bio-Rad, Qiagen, NEB, Promega, Corning, Sarstedt, Greiner, Agilent/Waters
+       consumables, Honeywell, TCI) and regional distributors. Peer revenue keeps resold Merck product (channel)."}
+
+# Reconciliation per cluster and year: publish only if |A - B| / mean(A, B) <= taxonomy publish_tolerance (15%),
+# compared on the P50s; otherwise the cell is a range (min P10 .. max P90), grade C.

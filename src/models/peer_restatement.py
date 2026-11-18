@@ -145,10 +145,14 @@ class PeerConfig(BaseModel):
 
 
 class Market(BaseModel):
-    clusters: dict[str, Assumption]
+    clusters: dict[str, Assumption] = {}       # filled at run time when cluster_shares_from = 'research_base'
     fx: dict
     monte_carlo: dict = {"draws": 10000, "seed": 20261118}
     dach_anchor: dict[str, Assumption] = {}
+    cluster_shares_from: str | None = None     # 'research_base' -> src/models/research_base.apply_to_market
+    research_base: dict = {}
+    demand: dict = {}                          # method B inputs (src/models/market_model.py)
+    supply: dict = {}                          # method A inputs
 
 
 def load_peer(peer: str, directory: Path = ASSUMPTIONS_DIR) -> PeerConfig:
@@ -541,16 +545,22 @@ class RunResult:
 
 
 def run_all(facts: list[FactRow], online_fx: bool = False, peers: list[str] = PEERS) -> RunResult:
-    market = load_market()
+    """facts must include the research-base facts when market.yaml derives cluster shares from them."""
+    from src.models import research_base
+
+    market = research_base.apply_to_market(load_market(), facts, online_fx)
+    if not market.clusters:
+        raise ValueError("market.yaml has no cluster shares (set cluster_shares_from: research_base or list clusters)")
     configs = [load_peer(p) for p in peers]
     problems = check_source_quotes([a for c in configs for a in c.assumptions()])
     if problems:
         raise ValueError("assumption quotes failed verification: " + "; ".join(problems))
     mc = market.monte_carlo
     results = []
-    for cfg in configs:
+    for i, cfg in enumerate(configs):
         rate, src = fx_units_per_eur(cfg.currency, int(cfg.period[2:6]), online=online_fx)
-        results.append(restate(cfg, facts, market, rate, src, n_draws=mc.get("draws"), seed=mc.get("seed")))
+        seed = None if mc.get("seed") is None else mc["seed"] + i   # own stream per peer: independent draws
+        results.append(restate(cfg, facts, market, rate, src, n_draws=mc.get("draws"), seed=seed))
     try:
         cross = dach_crosscheck(results, facts, market, seed=mc.get("seed"))
     except KeyError:
@@ -617,11 +627,12 @@ def main(argv: list[str] | None = None) -> None:
 
     from src.connectors import edgar
     from src.extract import pdf
+    from src.models import research_base
 
     facts, problems = edgar.load_all(online=False)
     if problems:
         print("EDGAR cross-check problems:", problems)
-    facts += pdf.verify_all_cached()[0]
+    facts += pdf.verify_all_cached()[0] + research_base.load_facts()
     res = run_all(facts, online_fx=args.online)
     for cfg in res.configs:
         for p in check_evidence(cfg, edgar.ten_k_texts(cfg.peer)):

@@ -20,6 +20,7 @@ class Settings(BaseModel):
     inpi_password: SecretStr | None = None
     sec_user_agent: str | None = None
     openalex_email: str | None = None
+    openalex_api_key: SecretStr | None = None
     duckdb_path: Path = PROJECT_ROOT / "data" / "demo.duckdb"
 
     def configured(self) -> dict[str, bool]:
@@ -44,5 +45,6 @@ def get_settings(env_file: Path | None = None) -> Settings:
         inpi_password=_env("INPI_PASSWORD"),
         sec_user_agent=_env("SEC_USER_AGENT"),
         openalex_email=_env("OPENALEX_EMAIL"),
+        openalex_api_key=_env("OPENALEX_API_KEY"),
         **({"duckdb_path": Path(db_path)} if db_path else {}),
     )

@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS market_cells (
     category    VARCHAR NOT NULL,
     cluster     VARCHAR NOT NULL,
     year        INTEGER NOT NULL,
-    method      VARCHAR NOT NULL,             -- 'A' supply side, 'B' demand side, 'published'
+    method      VARCHAR NOT NULL,             -- 'A' supply side, 'B' demand side, 'reconciled' (A vs B, 15% rule)
     value_low   DOUBLE,
     value_base  DOUBLE,
     value_high  DOUBLE,
@@ -111,6 +111,12 @@ TENDERS_EXTRA_COLUMNS = {
     "is_framework": "BOOLEAN",     # framework agreement: values are ceilings, not spend
     "title": "VARCHAR",            # procedure title
     "source": "VARCHAR",           # 'ted' | 'uk_fts'
+}
+MARKET_CELLS_EXTRA_COLUMNS = {
+    "status": "VARCHAR",           # 'estimate' (A/B rows) | 'published' (A, B within 15%) | 'range' (no point value)
+    "gap_pct": "DOUBLE",           # |A50 - B50| / mean(A50, B50) on reconciled rows
+    "note": "VARCHAR",
+    "computed_at": "TIMESTAMP",
 }
 TENDER_AWARDS_EXTRA_COLUMNS = {
     "evidence": "VARCHAR",         # exact field/element the value came from
@@ -158,6 +164,8 @@ def init_db(con: duckdb.DuckDBPyConnection) -> None:
     con.execute("UPDATE tenders SET source = 'ted' WHERE source IS NULL")  # rows loaded before 'source' existed
     for col, typ in TENDER_AWARDS_EXTRA_COLUMNS.items():
         con.execute(f"ALTER TABLE tender_awards ADD COLUMN IF NOT EXISTS {col} {typ}")
+    for col, typ in MARKET_CELLS_EXTRA_COLUMNS.items():
+        con.execute(f"ALTER TABLE market_cells ADD COLUMN IF NOT EXISTS {col} {typ}")
 
 
 def table_counts(con: duckdb.DuckDBPyConnection) -> dict[str, int]:

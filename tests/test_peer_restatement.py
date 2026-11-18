@@ -140,8 +140,8 @@ def test_real_configs_load(peer):
     assert c.academia.eg_share.quote and c.academia.eg_share.source_file and c.academia.eg_share.page
     assert all(x.grade == "C" for x in (c.ds_share, c.merck_resale_share, c.academia.concentration))
     m = pr.load_market()
-    assert set(m.clusters) == {"dach", "france_benelux", "uk_ireland_nordics"}
-    assert sum(x.base for x in m.clusters.values()) < 1.0
+    assert m.cluster_shares_from == "research_base" and not m.clusters   # derived at run time (test_research_base)
+    assert set(m.research_base["indicators"]) == {"rd_spend", "researchers", "publications", "eu_grants"}
 
 
 

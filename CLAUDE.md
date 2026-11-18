@@ -22,13 +22,13 @@ Python 3.12, uv, DuckDB (data/demo.duckdb), httpx, pydantic, pandas, Anthropic S
 (model name from env var ANTHROPIC_MODEL), Streamlit + Plotly for the dashboard, pytest.
 
 ## Folder structure
-src/connectors/   one file per source (ted, uk_fts, edgar, eurostat, companies_house, inpi, cordis, openalex);
-                  tender_store.py = shared tender writes (batched, rule 7)
+src/connectors/   one file per source (ted, uk_fts, edgar, eurostat, oecd_msti, cordis, openalex, companies_house, inpi);
+                  tender_store.py = shared tender writes (batched, rule 7); http_cache.py = polite GET + data/raw cache
 src/extract/      LLM extraction from PDFs with quotes (pdf.py) + quote/number checks (numbers.py)
 src/facts_store.py shared batched writes for documents/facts/assumptions (rule 7)
-src/models/       taxonomy, peer restatement, demand model, share bridge
+src/models/       taxonomy, peer restatement, research_base (country panel + cluster shares), market_model (A/B), share bridge
 src/app/          Streamlit pages
-config/           taxonomy.yaml, assumptions/*.yaml (one per peer + market drivers)
+config/           taxonomy.yaml, research_sources.yaml (countries + API queries), assumptions/*.yaml (one per peer + market)
 data/raw/         manually downloaded PDFs (merck, peers, registers)
 tests/
 
@@ -43,13 +43,25 @@ tenders(notice_id, country, buyer, cpv, value_eur, award_date, winner_name, winn
 tender_awards(notice_id, seq, winner_name, winner_id, value, currency, value_eur, alignment, grade,
               evidence, source_url, scope_note)
 fx_rates(currency, month, units_per_eur, source_url, retrieved_at)
-market_cells(segment, category, cluster, year, method, value_low, value_base, value_high, grade)
+market_cells(segment, category, cluster, year, method, value_low, value_base, value_high, grade,
+             + status, gap_pct, note, computed_at)  method = 'A' | 'B' | 'reconciled'; category 'all_ds' = all DS
+             categories; cluster 'total' = sum of 3 clusters; values = MC P10/P50/P90 (EUR m)
 
 ## Demo scope
 Segment: Academia (universities, research institutes, hospitals, government labs).
 Peers: Thermo Fisher, Avantor. Clusters: DACH, France & Benelux, UK & Nordics.
 Methods: A = supply side (restated peer revenue + others), B = demand side (R&D spend x
 consumables intensity). Publish a cell only if A and B are within 15%, else show a range.
+Market model (src/models/market_model.py, config/assumptions/market.yaml demand/supply):
+  B = intensity x (HES + w_gov x GOV + w_pnp x PNP R&D spend) x (1 + non-R&D uplift), 2019-2025; spend from Eurostat
+  rd_e_gerdtot, UK HES/GOV from OECD MSTI (Eurostat UK ends 2019 and predates the ONS revision), GBP at ECB annual
+  average; years after a series' last observation nowcast at the cluster's 2019-23 CAGR + offset.
+  A = (TMO + Avantor restated cluster revenue) / (1 - others_share), FY2025 only.
+  Reconciled: |A50 - B50| / mean <= 15% -> pooled-draw P10/P50/P90, grade B ('published'); else min P10 .. max P90,
+  no base, grade C ('range').
+Cluster shares for the peer restatement and Germany's share of DACH come from src/models/research_base.py: base =
+R&D-spend share of Europe (EU27 + UK, CH, NO, IS), low/high = min/max over R&D spend, researchers (headcount),
+OpenAlex wet-lab publications, CORDIS HES+REC grants (H2020 2017-20 window); grade B.
 DS EMEA revenue = public-data estimate, adjustable slider (grade C).
 Tender win shares (TED + UK FTS, src/models/tender_report.py): default view = core CPV, Academia buyers only
 (config/academia_buyers.yaml; hospitals count as Academia), excl. IVD winners, clinical blood-collection
@@ -64,13 +76,14 @@ biology catalogue; lab consumables. Excluded: lab water, biomonitoring, testing 
 bioprocess, instruments, diagnostics.
 
 ## Peer restatement (src/models/peer_restatement.py, config/assumptions/<peer>.yaml + market.yaml)
+Each peer has its own Monte Carlo seed (market seed + peer index) so peer draws are independent.
 1. Total revenue (EDGAR XBRL, A)
 2. x Europe share = disclosed Europe revenue / total, x mix factor (Avantor: FY2023 geo segments, last disclosed)
 3. x Business scope share = (in-scope sub-segment revenue x weight - intra-group double counting) / total
 4. x DS-equivalent product share; 4b: "of which resold Merck" shown separately (channel resale is kept, not dropped)
 5. x Academia share = disclosed end-market share (TMO A&G, Avantor Europe E&G) x concentration x EMEA factor
    + hospital add-on (Merck counts hospitals as Academia)
-6. x cluster share, USD->EUR at the FY average of ECB monthly rates
+6. x cluster share (derived, research_base), USD->EUR at the FY average of ECB monthly rates
 Monte Carlo (10,000 triangular draws, config/assumptions/market.yaml): P10-P90 is the default display, min/max
 (bounding) shown next to it; sensitivity = one-at-a-time swing + variance share. DACH sanity check against
 Fisher Scientific GmbH / VWR International GmbH register filings. Output grade = worst input grade.
