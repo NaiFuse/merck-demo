@@ -22,7 +22,7 @@ clusters:
     countries: [FR, BE, NL, LU]
   uk_ireland_nordics:
     label: UK, Ireland & Nordics
-    countries: [GB, IE, SE, NO, DK, FI, IS]
+    countries: [GB, IE, SE, "NO", DK, FI, IS]   # "NO" quoted: bare NO is YAML boolean false
 
 categories:
   chemistry_catalogue:

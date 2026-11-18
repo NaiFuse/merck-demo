@@ -9,7 +9,7 @@ import duckdb
 
 from src.settings import get_settings
 
-TABLES = ["documents", "facts", "assumptions", "tenders", "market_cells"]
+TABLES = ["documents", "facts", "assumptions", "tenders", "tender_awards", "fx_rates", "market_cells"]
 
 SCHEMA_SQL = """
 CREATE SEQUENCE IF NOT EXISTS documents_id_seq;
@@ -48,14 +48,36 @@ CREATE TABLE IF NOT EXISTS assumptions (
 );
 
 CREATE TABLE IF NOT EXISTS tenders (
-    notice_id    VARCHAR PRIMARY KEY,
-    country      VARCHAR,
+    notice_id    VARCHAR PRIMARY KEY,         -- TED publication number, e.g. '8729-2025'
+    country      VARCHAR,                     -- buyer country, ISO-2
     buyer        VARCHAR,
-    cpv          VARCHAR,
-    value_eur    DOUBLE,
+    cpv          VARCHAR,                     -- matched CPV codes from config/ted_cpv.yaml, ';'-joined
+    value_eur    DOUBLE,                      -- notice award value converted to EUR (ECB monthly rate)
     award_date   DATE,
-    winner_name  VARCHAR,
+    winner_name  VARCHAR,                     -- all winners, ';'-joined (per-winner rows: tender_awards)
     winner_id    VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS tender_awards (
+    notice_id    VARCHAR NOT NULL,
+    seq          INTEGER NOT NULL,            -- position of the winner within the notice
+    winner_name  VARCHAR,
+    winner_id    VARCHAR,
+    value        DOUBLE,                      -- in original currency
+    currency     VARCHAR,
+    value_eur    DOUBLE,
+    alignment    VARCHAR NOT NULL,            -- 'single' | 'lot' | 'split_equal' | 'no_value' | 'xml'
+    grade        VARCHAR NOT NULL CHECK (grade IN ('A', 'B', 'C')),
+    PRIMARY KEY (notice_id, seq)
+);
+
+CREATE TABLE IF NOT EXISTS fx_rates (
+    currency       VARCHAR NOT NULL,
+    month          VARCHAR NOT NULL,          -- 'YYYY-MM'
+    units_per_eur  DOUBLE NOT NULL,           -- ECB reference rate, monthly average
+    source_url     VARCHAR NOT NULL,
+    retrieved_at   TIMESTAMP NOT NULL,
+    PRIMARY KEY (currency, month)
 );
 
 CREATE TABLE IF NOT EXISTS market_cells (
@@ -71,6 +93,29 @@ CREATE TABLE IF NOT EXISTS market_cells (
     PRIMARY KEY (segment, category, cluster, year, method)
 );
 """
+
+# Extra tenders columns (provenance + raw values). ALTER ... IF NOT EXISTS migrates existing DBs.
+TENDERS_EXTRA_COLUMNS = {
+    "notice_type": "VARCHAR",
+    "publication_date": "DATE",
+    "buyer_legal_type": "VARCHAR",
+    "cpv_all": "VARCHAR",          # all CPV codes on the notice
+    "value": "DOUBLE",             # award value in original currency
+    "currency": "VARCHAR",
+    "value_field": "VARCHAR",      # TED field the value was read from
+    "n_winners": "INTEGER",
+    "source_url": "VARCHAR",       # human-readable TED notice page
+    "api_query": "VARCHAR",        # exact TED expert query that returned the notice
+    "retrieved_at": "TIMESTAMP",
+    "raw_json": "VARCHAR",         # exact API row (provenance)
+    "is_framework": "BOOLEAN",     # framework agreement: values are ceilings, not spend
+    "title": "VARCHAR",            # procedure title
+}
+TENDER_AWARDS_EXTRA_COLUMNS = {
+    "evidence": "VARCHAR",         # exact field/element the value came from
+    "source_url": "VARCHAR",       # notice XML URL when the row came from XML, else NULL (see tenders.source_url)
+    "scope_note": "VARCHAR",       # 'lab_water' | 'lab_water_possible' | NULL
+}
 
 
 def _db_path(path: Path | str | None) -> Path:
@@ -107,6 +152,10 @@ def connect_readonly(
 
 def init_db(con: duckdb.DuckDBPyConnection) -> None:
     con.execute(SCHEMA_SQL)
+    for col, typ in TENDERS_EXTRA_COLUMNS.items():
+        con.execute(f"ALTER TABLE tenders ADD COLUMN IF NOT EXISTS {col} {typ}")
+    for col, typ in TENDER_AWARDS_EXTRA_COLUMNS.items():
+        con.execute(f"ALTER TABLE tender_awards ADD COLUMN IF NOT EXISTS {col} {typ}")
 
 
 def table_counts(con: duckdb.DuckDBPyConnection) -> dict[str, int]:

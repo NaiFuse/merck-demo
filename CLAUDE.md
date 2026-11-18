@@ -14,6 +14,8 @@ segment vs. Thermo Fisher and Avantor, using only free public data. Unofficial, 
 4. Official APIs only. Respect terms of use and rate limits. No scraping of supplier web shops.
 5. Secrets only in .env. Never print or commit keys.
 6. Small, testable modules. After each milestone: run it, show sample output, list open issues.
+7. Loaders open the DB write connection only briefly: open, write a batch, close.
+   Never hold a write connection during network calls or LLM calls.
 
 ## Stack
 Python 3.12, uv, DuckDB (data/demo.duckdb), httpx, pydantic, pandas, Anthropic SDK
@@ -32,7 +34,11 @@ tests/
 documents(id, source, url_or_path, retrieved_at)
 facts(id, document_id, entity, period, metric, value, unit, region, segment, quote, grade)
 assumptions(id, key, value_low, value_base, value_high, source, grade, note)
-tenders(notice_id, country, buyer, cpv, value_eur, award_date, winner_name, winner_id)
+tenders(notice_id, country, buyer, cpv, value_eur, award_date, winner_name, winner_id,
+        + provenance: notice_type, publication_date, buyer_legal_type, cpv_all, value, currency,
+          value_field, n_winners, source_url, api_query, retrieved_at, raw_json)
+tender_awards(notice_id, seq, winner_name, winner_id, value, currency, value_eur, alignment, grade)
+fx_rates(currency, month, units_per_eur, source_url, retrieved_at)
 market_cells(segment, category, cluster, year, method, value_low, value_base, value_high, grade)
 
 ## Demo scope

@@ -1,0 +1,61 @@
+# CPV codes for the TED connector. Verified 2026-11-18 against the official CPV 2008 scheme
+# (EU Vocabularies, Publications Office: http://data.europa.eu/cpv/cpv, SPARQL endpoint
+# https://publications.europa.eu/webapi/rdf/sparql). Labels are the official English prefLabels.
+# TED matches classification-cpv exactly (no hierarchy expansion), so parents and children are listed
+# separately. Codes are 8 digits without the check digit, as the TED API expects.
+#
+# tier: core  = clearly in the DS-equivalent scope, used in the default report
+#       broad = relevant but noisy (non-lab buyers, generic parents); fetched, reported separately
+# category = DS-equivalent category key from config/taxonomy.yaml
+
+include:
+  # Reagents
+  "33696000": {label: Reagents and contrast media, category: analytical_reagents_standards, tier: broad,
+               note: "generic parent; often used by hospitals for clinical diagnostics"}
+  "33696300": {label: Chemical reagents, category: chemistry_catalogue, tier: core}
+  "33696400": {label: Isotopic reagents, category: chemistry_catalogue, tier: core}
+  "33696500": {label: Laboratory reagents, category: analytical_reagents_standards, tier: core}
+  "33696600": {label: Reagents for electrophoresis, category: biology_catalogue, tier: core}
+  # Biology catalogue
+  "33698100": {label: Microbiological cultures, category: biology_catalogue, tier: core}
+  "24965000": {label: Enzymes, category: biology_catalogue, tier: core}
+  # Lab / bulk chemicals and solvents (no dedicated "laboratory chemicals" CPV exists)
+  "24310000": {label: Basic inorganic chemicals, category: solvents_bulk_chemicals, tier: broad,
+               note: "dominated by water-treatment / utility buyers"}
+  "24320000": {label: Basic organic chemicals, category: solvents_bulk_chemicals, tier: broad}
+  "24322000": {label: "Alcohols, phenols, phenol-alcohols and their halogenated, sulphonated, nitrated or nitrosated derivatives; industrial fatty alcohols",
+               category: solvents_bulk_chemicals, tier: broad}
+  "24322210": {label: Methanol, category: solvents_bulk_chemicals, tier: broad}
+  "24322220": {label: Ethanol, category: solvents_bulk_chemicals, tier: broad,
+               note: "partly disinfection ethanol for hospitals"}
+  "44832000": {label: Solvents, category: solvents_bulk_chemicals, tier: broad,
+               note: "sits in division 44 (construction materials)"}
+  # Lab consumables
+  "38437000": {label: Laboratory pipettes and accessories, category: lab_consumables, tier: core}
+  "38437100": {label: Pipettes, category: lab_consumables, tier: core}
+  "38437110": {label: Pipette tips, category: lab_consumables, tier: core}
+  "38437120": {label: Pipette stands, category: lab_consumables, tier: core}
+  "33793000": {label: Laboratory glassware, category: lab_consumables, tier: core}
+  "33790000": {label: "Laboratory, hygienic or pharmaceutical glassware", category: lab_consumables, tier: broad,
+               note: "parent; includes hygienic and pharmaceutical glassware"}
+  "33192500": {label: Test tubes, category: lab_consumables, tier: core,
+               note: "hospitals also buy blood-collection tubes under this code"}
+  "15994200": {label: Filter paper, category: lab_consumables, tier: core}
+
+# Checked and deliberately left out (excluded categories in CLAUDE.md, or too generic)
+exclude:
+  "33696100": Blood-grouping reagents (diagnostics)
+  "33696200": Blood-testing reagents (diagnostics)
+  "33696700": Urological reagents (diagnostics)
+  "33696800": X-ray contrast media (diagnostics)
+  "33694000": Diagnostic agents (diagnostics)
+  "33124131": Reagent strips (diagnostics)
+  "33141625": Diagnostic kits (diagnostics)
+  "24316000": Distilled water (lab water)
+  "18424300": Disposable gloves (generic hospital PPE, would swamp lab volume)
+  "38430000": Detection and analysis apparatus and children (instruments)
+  "42931100": Laboratory centrifuges and accessories (instruments)
+  "38000000": "Laboratory, optical and precision equipments (instruments)"
+  "71900000": Laboratory services (testing services)
+  "73111000": Research laboratory services (testing services)
+  "24000000": Chemical products (too generic)

@@ -55,8 +55,8 @@ def test_assumptions(con):
 
 def test_tenders(con):
     con.execute(
-        "INSERT INTO tenders VALUES ('123456-2025', 'DE', 'Universität X', '33696300', 250000.0, "
-        "DATE '2025-03-01', 'Example GmbH', 'DE123')"
+        "INSERT INTO tenders (notice_id, country, buyer, cpv, value_eur, award_date, winner_name, winner_id) "
+        "VALUES ('123456-2025', 'DE', 'Universität X', '33696300', 250000.0, DATE '2025-03-01', 'Example GmbH', 'DE123')"
     )
     assert table_counts(con)["tenders"] == 1
     with pytest.raises(duckdb.ConstraintException):  # notice_id is the primary key

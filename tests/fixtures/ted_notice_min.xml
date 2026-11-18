@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ContractAwardNotice xmlns="urn:oasis:names:specification:ubl:schema:xsd:ContractAwardNotice-2"
+  xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+  xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+  xmlns:efac="http://data.europa.eu/p27/eforms-ubl-extension-aggregate-components/1"
+  xmlns:efbc="http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1">
+  <efac:Organizations>
+    <efac:Organization><efac:Company>
+      <cac:PartyIdentification><cbc:ID schemeName="organization">ORG-0002</cbc:ID></cac:PartyIdentification>
+      <cac:PartyName><cbc:Name languageID="DEU">Merck Life Science GmbH</cbc:Name></cac:PartyName>
+      <cac:PartyLegalEntity><cbc:CompanyID>DE111</cbc:CompanyID></cac:PartyLegalEntity>
+    </efac:Company></efac:Organization>
+    <efac:Organization><efac:Company>
+      <cac:PartyIdentification><cbc:ID schemeName="organization">ORG-0003</cbc:ID></cac:PartyIdentification>
+      <cac:PartyName><cbc:Name languageID="DEU">VWR International GmbH</cbc:Name></cac:PartyName>
+    </efac:Company></efac:Organization>
+    <efac:Organization><efac:Company>
+      <cac:PartyIdentification><cbc:ID schemeName="organization">ORG-0004</cbc:ID></cac:PartyIdentification>
+      <cac:PartyName><cbc:Name languageID="DEU">Carl Roth GmbH</cbc:Name></cac:PartyName>
+    </efac:Company></efac:Organization>
+  </efac:Organizations>
+  <cac:ProcurementProjectLot><cbc:ID schemeName="Lot">LOT-0001</cbc:ID>
+    <cac:ProcurementProject><cbc:Name>Reinstwasseranlage Milli-Q</cbc:Name><cbc:Description>Lieferung</cbc:Description></cac:ProcurementProject>
+  </cac:ProcurementProjectLot>
+  <cac:ProcurementProjectLot><cbc:ID schemeName="Lot">LOT-0002</cbc:ID>
+    <cac:ProcurementProject><cbc:Name>Laborchemikalien</cbc:Name></cac:ProcurementProject>
+  </cac:ProcurementProjectLot>
+  <efac:NoticeResult>
+    <efac:LotResult>
+      <cbc:ID schemeName="result">RES-0001</cbc:ID>
+      <cbc:TenderResultCode listName="winner-selection-status">selec-w</cbc:TenderResultCode>
+      <efac:LotTender><cbc:ID>TEN-0001</cbc:ID></efac:LotTender>
+      <efac:FrameworkAgreementValues><cbc:MaximumValueAmount currencyID="EUR">50000</cbc:MaximumValueAmount></efac:FrameworkAgreementValues>
+      <efac:TenderLot><cbc:ID>LOT-0001</cbc:ID></efac:TenderLot>
+    </efac:LotResult>
+    <efac:LotResult>
+      <cbc:ID schemeName="result">RES-0002</cbc:ID>
+      <cbc:TenderResultCode listName="winner-selection-status">selec-w</cbc:TenderResultCode>
+      <efac:LotTender><cbc:ID>TEN-0002</cbc:ID></efac:LotTender>
+      <efac:LotTender><cbc:ID>TEN-0003</cbc:ID></efac:LotTender>
+      <efac:FrameworkAgreementValues><cbc:MaximumValueAmount currencyID="EUR">90000</cbc:MaximumValueAmount></efac:FrameworkAgreementValues>
+      <efac:TenderLot><cbc:ID>LOT-0002</cbc:ID></efac:TenderLot>
+    </efac:LotResult>
+    <efac:LotResult>
+      <cbc:ID schemeName="result">RES-0003</cbc:ID>
+      <cbc:TenderResultCode listName="winner-selection-status">clos-nw</cbc:TenderResultCode>
+      <efac:TenderLot><cbc:ID>LOT-0003</cbc:ID></efac:TenderLot>
+    </efac:LotResult>
+    <efac:LotTender>
+      <cbc:ID schemeName="tender">TEN-0001</cbc:ID>
+      <cac:LegalMonetaryTotal><cbc:PayableAmount currencyID="EUR">48000.50</cbc:PayableAmount></cac:LegalMonetaryTotal>
+      <efac:TenderingParty><cbc:ID>TPA-0001</cbc:ID></efac:TenderingParty>
+      <efac:TenderLot><cbc:ID>LOT-0001</cbc:ID></efac:TenderLot>
+    </efac:LotTender>
+    <efac:LotTender>
+      <cbc:ID schemeName="tender">TEN-0002</cbc:ID>
+      <efac:TenderingParty><cbc:ID>TPA-0002</cbc:ID></efac:TenderingParty>
+      <efac:TenderLot><cbc:ID>LOT-0002</cbc:ID></efac:TenderLot>
+    </efac:LotTender>
+    <efac:LotTender>
+      <cbc:ID schemeName="tender">TEN-0003</cbc:ID>
+      <efac:TenderingParty><cbc:ID>TPA-0003</cbc:ID></efac:TenderingParty>
+      <efac:TenderLot><cbc:ID>LOT-0002</cbc:ID></efac:TenderLot>
+    </efac:LotTender>
+    <efac:TenderingParty><cbc:ID schemeName="tendering-party">TPA-0001</cbc:ID><efac:Tenderer><cbc:ID>ORG-0002</cbc:ID></efac:Tenderer></efac:TenderingParty>
+    <efac:TenderingParty><cbc:ID schemeName="tendering-party">TPA-0002</cbc:ID>
+      <efac:Tenderer><cbc:ID>ORG-0004</cbc:ID></efac:Tenderer>
+      <efac:Tenderer><cbc:ID>ORG-0003</cbc:ID><efbc:GroupLeadIndicator>true</efbc:GroupLeadIndicator></efac:Tenderer>
+    </efac:TenderingParty>
+    <efac:TenderingParty><cbc:ID schemeName="tendering-party">TPA-0003</cbc:ID><efac:Tenderer><cbc:ID>ORG-0004</cbc:ID></efac:Tenderer></efac:TenderingParty>
+  </efac:NoticeResult>
+</ContractAwardNotice>

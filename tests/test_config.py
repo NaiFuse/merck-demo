@@ -7,6 +7,9 @@ def test_taxonomy_matches_claude_md():
     assert set(tax["clusters"]) == {"dach", "france_benelux", "uk_ireland_nordics"}
     assert tax["clusters"]["uk_ireland_nordics"]["label"] == "UK, Ireland & Nordics"
     assert "IE" in tax["clusters"]["uk_ireland_nordics"]["countries"]
+    all_countries = [c for cl in tax["clusters"].values() for c in cl["countries"]]
+    assert all(isinstance(c, str) and len(c) == 2 for c in all_countries)  # YAML 'NO' -> False trap
+    assert "NO" in all_countries
     assert len(tax["categories"]) == 5
     assert [k for k, v in tax["segments"].items() if v["in_scope"]] == ["academia"]
     assert set(tax["peers"]) == {"thermo_fisher", "avantor"}
