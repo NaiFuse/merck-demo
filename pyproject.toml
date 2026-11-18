@@ -10,6 +10,7 @@ dependencies = [
     "pandas",
     "plotly",
     "pydantic",
+    "pypdf>=7.1.1",
     "python-dotenv",
     "pyyaml",
     "streamlit",

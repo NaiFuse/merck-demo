@@ -1,0 +1,19 @@
+# Shared drivers for the peer restatement (step 6).
+
+# Share of a peer's Europe revenue in each demo cluster (low / base / high). Grade C placeholders from approximate
+# GERD (R&D spend) weights across Europe; replace with Eurostat rd_e_gerdtot when the eurostat connector lands
+# (milestone 4). The remainder (~22%) is Southern/Eastern Europe, outside the demo clusters.
+clusters:
+  dach:
+    {key: cluster_share_dach, low: 0.28, base: 0.35, high: 0.42, grade: C,
+     source: "placeholder: approx. GERD weight DE+AT+CH in Europe; to be replaced by Eurostat"}
+  france_benelux:
+    {key: cluster_share_france_benelux, low: 0.17, base: 0.21, high: 0.25, grade: C,
+     source: "placeholder: approx. GERD weight FR+BE+NL+LU in Europe; to be replaced by Eurostat"}
+  uk_ireland_nordics:
+    {key: cluster_share_uk_ireland_nordics, low: 0.18, base: 0.22, high: 0.27, grade: C,
+     source: "placeholder: approx. GERD weight GB+IE+SE+NO+DK+FI+IS in Europe; to be replaced by Eurostat"}
+
+# USD -> EUR: average of the 12 ECB monthly reference rates of the fiscal year (grade A, src/connectors/ecb_fx.py)
+fx:
+  currency: USD

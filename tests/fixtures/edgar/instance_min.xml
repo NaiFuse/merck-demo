@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xbrl xmlns="http://www.xbrl.org/2003/instance" xmlns:xbrli="http://www.xbrl.org/2003/instance"
+      xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:us-gaap="http://fasb.org/us-gaap/2025"
+      xmlns:srt="http://fasb.org/srt/2025" xmlns:tmo="http://www.thermofisher.com/20251231"
+      xmlns:iso4217="http://www.xbrl.org/2003/iso4217">
+  <xbrli:context id="c-fy"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">0000097745</xbrli:identifier></xbrli:entity>
+    <xbrli:period><xbrli:startDate>2025-01-01</xbrli:startDate><xbrli:endDate>2025-12-31</xbrli:endDate></xbrli:period></xbrli:context>
+  <xbrli:context id="c-eu"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">0000097745</xbrli:identifier>
+    <xbrli:segment><xbrldi:explicitMember dimension="srt:StatementGeographicalAxis">srt:EuropeMember</xbrldi:explicitMember></xbrli:segment></xbrli:entity>
+    <xbrli:period><xbrli:startDate>2025-01-01</xbrli:startDate><xbrli:endDate>2025-12-31</xbrli:endDate></xbrli:period></xbrli:context>
+  <xbrli:context id="c-sub"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">0000097745</xbrli:identifier>
+    <xbrli:segment><xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:OperatingSegmentsMember</xbrldi:explicitMember>
+      <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">tmo:LaboratoryProductsAndBiopharmaServicesMember</xbrldi:explicitMember>
+      <xbrldi:explicitMember dimension="us-gaap:SubsegmentsAxis">tmo:ResearchAndSafetyMarketChannelMember</xbrldi:explicitMember></xbrli:segment></xbrli:entity>
+    <xbrli:period><xbrli:startDate>2025-01-01</xbrli:startDate><xbrli:endDate>2025-12-31</xbrli:endDate></xbrli:period></xbrli:context>
+  <xbrli:context id="c-q3"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">0000097745</xbrli:identifier></xbrli:entity>
+    <xbrli:period><xbrli:startDate>2025-06-29</xbrli:startDate><xbrli:endDate>2025-09-27</xbrli:endDate></xbrli:period></xbrli:context>
+  <xbrli:context id="c-ytd"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">0000097745</xbrli:identifier></xbrli:entity>
+    <xbrli:period><xbrli:startDate>2025-01-01</xbrli:startDate><xbrli:endDate>2025-09-27</xbrli:endDate></xbrli:period></xbrli:context>
+  <xbrli:context id="c-other"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">0000097745</xbrli:identifier>
+    <xbrli:segment><xbrldi:explicitMember dimension="us-gaap:IncomeStatementLocationAxis">us-gaap:OtherMember</xbrldi:explicitMember></xbrli:segment></xbrli:entity>
+    <xbrli:period><xbrli:startDate>2025-01-01</xbrli:startDate><xbrli:endDate>2025-12-31</xbrli:endDate></xbrli:period></xbrli:context>
+  <xbrli:context id="c-inst"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">0000097745</xbrli:identifier></xbrli:entity>
+    <xbrli:period><xbrli:instant>2025-12-31</xbrli:instant></xbrli:period></xbrli:context>
+  <xbrli:unit id="usd"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>
+  <us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax contextRef="c-fy" unitRef="usd" decimals="-6">44556000000</us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax>
+  <us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax contextRef="c-eu" unitRef="usd" decimals="-6">11826000000</us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax>
+  <us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax contextRef="c-sub" unitRef="usd" decimals="-6">7440000000</us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax>
+  <us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax contextRef="c-q3" unitRef="usd" decimals="-6">11122000000</us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax>
+  <us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax contextRef="c-ytd" unitRef="usd" decimals="-6">32000000000</us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax>
+  <us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax contextRef="c-other" unitRef="usd" decimals="-6">5000000</us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax>
+  <us-gaap:Assets contextRef="c-inst" unitRef="usd" decimals="-6">100000000000</us-gaap:Assets>
+</xbrl>

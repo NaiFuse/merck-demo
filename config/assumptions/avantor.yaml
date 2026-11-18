@@ -1,0 +1,50 @@
+# Avantor – 6-step restatement to DS-comparable EMEA Academia revenue (see CLAUDE.md "Peer restatement").
+# Facts are referenced by (period, region, segment) as stored by src/connectors/edgar.py; numbers in USD_m.
+# Avantor re-segmented in 2025 (Laboratory Solutions / Bioscience Production); its last geographic segments
+# (Americas / Europe / AMEA) are in the FY2023 10-K, so the Europe share comes from FY2023.
+
+peer: avantor
+label: Avantor
+period: FY2025
+currency: USD
+tenk_url: https://www.sec.gov/Archives/edgar/data/1722482/000162828026007118/avtr-20251231.htm
+
+# Step 1 – total revenue (A)
+revenue: {period: FY2025}
+
+# Step 2 – Europe share from FY2023 geographic segments (A for FY2023), mix factor for drift to FY2025
+geo:
+  numerator: {period: FY2023, segment: "consolidation=ReportableGeographicalComponents;segment=EuropeSegment"}
+  denominator: {period: FY2023}
+  mix_factor:
+    {key: geo_mix_factor, low: 0.93, base: 1.0, high: 1.05, grade: C,
+     source: "estimate: FY2023 Europe share applied to FY2025; non-US share moved little (see show output)",
+     note: "Avantor 'Europe' segment; AMEA (incl. Middle East/Africa) excluded."}
+
+# Step 3 – business scope
+scope:
+  include:
+    - ref: {period: FY2025, segment: "consolidation=OperatingSegments;segment=LaboratorySolutionsSegment"}
+      weight: {key: w_laboratory_solutions, low: 1, base: 1, high: 1, grade: A, source: "in scope: VWR channel + lab chemicals"}
+      evidence: "in our channel business, VWR, we distribute consumables and equipment to laboratories around the world"
+    - ref: {period: FY2025, segment: "consolidation=OperatingSegments;segment=BioscienceProductionSegment"}
+      weight: {key: w_bioscience_production, low: 0, base: 0, high: 0.05, grade: C,
+               source: "bioprocess excluded per CLAUDE.md; high case keeps some high-purity lab chemicals"}
+  deduct: []
+
+# Step 4 – DS-equivalent product share of Laboratory Solutions (excl. equipment, instruments, services, PPE)
+ds_share:
+  {key: ds_share, low: 0.50, base: 0.60, high: 0.70, grade: C,
+   source: "estimate: Laboratory Solutions also sells equipment/instruments, lab services and cleanroom/PPE"}
+
+# Step 4b – resold Merck/Sigma-Aldrich share of DS-equivalent revenue
+merck_resale_share:
+  {key: merck_resale_share, low: 0.06, base: 0.10, high: 0.15, grade: C,
+   source: "estimate: VWR carries third-party brands incl. Merck/Sigma-Aldrich",
+   evidence: "millions of SKUs from the most renowned life sciences suppliers in the world"}
+
+# Step 5 – Academia share
+academia_share:
+  {key: academia_share, low: 0.15, base: 0.20, high: 0.25, grade: C,
+   source: "estimate: 'education & government' is a named end market; no % disclosed in the 10-K",
+   evidence: "biopharma & healthcare, education & government, and advanced technologies & applied materials end markets"}

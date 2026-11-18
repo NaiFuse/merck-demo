@@ -24,7 +24,8 @@ Python 3.12, uv, DuckDB (data/demo.duckdb), httpx, pydantic, pandas, Anthropic S
 ## Folder structure
 src/connectors/   one file per source (ted, uk_fts, edgar, eurostat, companies_house, inpi, cordis, openalex);
                   tender_store.py = shared tender writes (batched, rule 7)
-src/extract/      LLM extraction from PDFs with quotes
+src/extract/      LLM extraction from PDFs with quotes (pdf.py) + quote/number checks (numbers.py)
+src/facts_store.py shared batched writes for documents/facts/assumptions (rule 7)
 src/models/       taxonomy, peer restatement, demand model, share bridge
 src/app/          Streamlit pages
 config/           taxonomy.yaml, assumptions/*.yaml (one per peer + market drivers)
@@ -59,6 +60,15 @@ Phase-2 placeholders: Pharma, Industry & Service, customer survey, exact DS shar
 Chemistry catalogue; solvents & bulk lab chemicals; analytical reagents & standards;
 biology catalogue; lab consumables. Excluded: lab water, biomonitoring, testing services,
 bioprocess, instruments, diagnostics.
+
+## Peer restatement (src/models/peer_restatement.py, config/assumptions/<peer>.yaml + market.yaml)
+1. Total revenue (EDGAR XBRL, A)
+2. x Europe share = disclosed Europe revenue / total, x mix factor (Avantor: FY2023 geo segments, last disclosed)
+3. x Business scope share = (in-scope sub-segment revenue x weight - intra-group double counting) / total
+4. x DS-equivalent product share; 4b: "of which resold Merck" shown separately (channel resale is kept, not dropped)
+5. x Academia share
+6. x cluster share, USD->EUR at the FY average of ECB monthly rates
+Ranges are bounding (low = product of lows). Output grade = worst input grade.
 
 ## Share bridge
 g_DS - g_M = sum_s (w_s - v_s) * g_s  [mix]  +  sum_s w_s * (g_DS_s - g_s)  [share]

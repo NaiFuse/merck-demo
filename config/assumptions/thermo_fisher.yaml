@@ -1,0 +1,65 @@
+# Thermo Fisher – 6-step restatement to DS-comparable EMEA Academia revenue (see CLAUDE.md "Peer restatement").
+# Facts are referenced by (period, region, segment) as stored by src/connectors/edgar.py; numbers in USD_m.
+# Shares/weights: low / base / high. Grade A = disclosed, B = triangulated, C = estimate (always a range).
+# evidence: verbatim sentence checked against the cached 10-K text (src/models/peer_restatement.py).
+
+peer: thermo_fisher
+label: Thermo Fisher
+period: FY2025
+currency: USD
+tenk_url: https://www.sec.gov/Archives/edgar/data/97745/000009774526000018/tmo-20251231.htm
+
+# Step 1 – total revenue (A)
+revenue: {period: FY2025}
+
+# Step 2 – Europe share = Europe geographic revenue / total (A), times a mix factor for the in-scope businesses
+geo:
+  numerator: {period: FY2025, region: Europe}
+  denominator: {period: FY2025}
+  mix_factor:
+    {key: geo_mix_factor, low: 0.9, base: 1.0, high: 1.1, grade: C,
+     source: "estimate: in-scope lab businesses assumed to have the company's Europe mix +-10%",
+     note: "TMO 'Europe' excludes Middle East/Africa (in 'Other regions'); treated as EMEA proxy."}
+
+# Step 3 – business scope: in-scope sub-segment revenue (A) x weight, less intra-group double counting
+scope:
+  include:
+    - ref: {period: FY2025, segment: "consolidation=OperatingSegments;segment=LifeSciencesSolutions;subsegment=Biosciences"}
+      weight: {key: w_biosciences, low: 1, base: 1, high: 1, grade: A, source: "in scope: reagents, cell culture, antibodies, plastics"}
+    - ref: {period: FY2025, segment: "consolidation=OperatingSegments;segment=LaboratoryProductsAndBiopharmaServices;subsegment=LaboratoryProducts"}
+      weight: {key: w_laboratory_products, low: 1, base: 1, high: 1, grade: A, source: "in scope: lab consumables, equipment, chemicals"}
+      evidence: "Our laboratory products include lab consumables, equipment and chemicals"
+    - ref: {period: FY2025, segment: "consolidation=OperatingSegments;segment=LaboratoryProductsAndBiopharmaServices;subsegment=ResearchAndSafetyMarketChannel"}
+      weight: {key: w_research_safety_channel, low: 1, base: 1, high: 1, grade: A, source: "in scope: Fisher distribution channel"}
+      evidence: "Our research and safety market channel offers a mix of products that are manufactured by Thermo Fisher, by third parties for us on a private-label basis, and by third parties under their brands"
+    - ref: {period: FY2025, segment: "consolidation=OperatingSegments;segment=LifeSciencesSolutions;subsegment=GeneticSciences"}
+      weight: {key: w_genetic_sciences, low: 0.1, base: 0.2, high: 0.3, grade: C,
+               source: "estimate: PCR/qPCR reagents and consumables part; sequencing/PCR instruments excluded"}
+    - ref: {period: FY2025, segment: "consolidation=OperatingSegments;segment=AnalyticalInstruments;subsegment=ChromatographyAndMassSpectrometry"}
+      weight: {key: w_chromatography_ms, low: 0.05, base: 0.1, high: 0.15, grade: C,
+               source: "estimate: columns, standards and chromatography consumables; instruments excluded"}
+    # Excluded (weight 0 by CLAUDE.md taxonomy): BioProduction (bioprocess), Pharma Services, Clinical Research
+    # (services), Specialty Diagnostics (diagnostics), Electron Microscopy and Chemical Analysis (instruments).
+  deduct:
+    - ref: {period: FY2025, segment: "segment=LaboratoryProductsAndBiopharmaServices;subsegment_consolidation=IntersubsegmentEliminations", abs: true}
+      weight: {key: d_lpbs_intersubsegment, low: 1, base: 1, high: 1, grade: A,
+               source: "disclosed eliminations: lab products sold through the channel are counted in both sub-segments"}
+    - ref: {period: FY2025, segment: "consolidation=MaterialReconcilingItems;segment=LifeSciencesSolutions"}
+      weight: {key: d_lss_intersegment_in_scope, low: 0.6, base: 0.75, high: 0.9, grade: C,
+               source: "estimate: share of LSS intersegment revenue (sold via the channel) that is Biosciences/Genetic Sciences"}
+
+# Step 4 – DS-equivalent product share of in-scope revenue (excl. equipment, instruments, PPE/safety, services)
+ds_share:
+  {key: ds_share, low: 0.45, base: 0.55, high: 0.65, grade: C,
+   source: "estimate: channel and lab products include equipment, safety/PPE and services outside the DS categories"}
+
+# Step 4b – share of DS-equivalent revenue that is resold Merck/Sigma-Aldrich product (shown as 'of which resold Merck')
+merck_resale_share:
+  {key: merck_resale_share, low: 0.04, base: 0.07, high: 0.10, grade: C,
+   source: "estimate: third-party brands in the research and safety channel include Merck/Sigma-Aldrich"}
+
+# Step 5 – Academia (academic & government) share of DS-equivalent lab revenue in Europe
+academia_share:
+  {key: academia_share, low: 0.18, base: 0.24, high: 0.30, grade: C,
+   source: "estimate: research consumables skew to academia vs. TMO company level; no % disclosed in the 10-K",
+   evidence: "We serve the pharmaceutical, biotechnology, academic, government and other research and industrial markets"}
