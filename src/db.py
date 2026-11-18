@@ -110,6 +110,7 @@ TENDERS_EXTRA_COLUMNS = {
     "raw_json": "VARCHAR",         # exact API row (provenance)
     "is_framework": "BOOLEAN",     # framework agreement: values are ceilings, not spend
     "title": "VARCHAR",            # procedure title
+    "source": "VARCHAR",           # 'ted' | 'uk_fts'
 }
 TENDER_AWARDS_EXTRA_COLUMNS = {
     "evidence": "VARCHAR",         # exact field/element the value came from
@@ -154,6 +155,7 @@ def init_db(con: duckdb.DuckDBPyConnection) -> None:
     con.execute(SCHEMA_SQL)
     for col, typ in TENDERS_EXTRA_COLUMNS.items():
         con.execute(f"ALTER TABLE tenders ADD COLUMN IF NOT EXISTS {col} {typ}")
+    con.execute("UPDATE tenders SET source = 'ted' WHERE source IS NULL")  # rows loaded before 'source' existed
     for col, typ in TENDER_AWARDS_EXTRA_COLUMNS.items():
         con.execute(f"ALTER TABLE tender_awards ADD COLUMN IF NOT EXISTS {col} {typ}")
 

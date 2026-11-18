@@ -23,9 +23,8 @@ import httpx
 import yaml
 
 from src.connectors import ecb_fx, ted_xml
-from src.db import connect, init_db
+from src.connectors.tender_store import apply_fx, apply_scope_flags, save
 from src.models.taxonomy import load_taxonomy
-from src.models.scope import tag_lab_water
 from src.models.winners import IVD, clean_name, winner_group
 from src.settings import PROJECT_ROOT
 
@@ -37,7 +36,6 @@ MAX_RESULTS_PER_QUERY = 15_000  # TED hard cap for page-number pagination
 PAGE_LIMIT = 250                # max notices per page
 MIN_INTERVAL_S = 0.6            # polite spacing between requests
 LOOKBACK_MONTHS = 36
-WRITE_BATCH = 500
 
 # eForms contract award notices. 'can-modif' (contract modifications) is left out to avoid double counting.
 NOTICE_TYPES = ("can-standard", "can-social")
@@ -341,6 +339,7 @@ def parse_notice(raw: dict, query: str, retrieved_at: datetime, cpv_include: set
         retrieved_at=retrieved_at,
         raw_json=json.dumps({k: v for k, v in raw.items() if k != "links"}, ensure_ascii=False, sort_keys=True),
         is_framework=is_framework(raw),
+        source="ted",
         title=(_first_lang(raw.get("title-proc")) or [None])[0],
         _lot_texts=lot_texts(raw),
     )
@@ -391,65 +390,6 @@ def select_for_xml(tenders: list[dict], awards: list[dict], core: set[str], n: i
                 and any(winner_group(a["winner_name"]) != IVD for a in aw)):
             cands.append((t["value_eur"], t["notice_id"]))
     return [nid for _, nid in sorted(cands, reverse=True)[:n]]
-
-
-def apply_scope_flags(tenders: list[dict], awards: list[dict]) -> None:
-    tmap = {t["notice_id"]: t for t in tenders}
-    for a in awards:
-        t = tmap[a["notice_id"]]
-        others = [x for x in t.get("_lot_texts", []) if x != a.get("_own_text")]
-        a["scope_note"] = tag_lab_water(a["winner_name"], t.get("title"), a.get("_own_text"), others)
-
-
-def apply_fx(tenders: list[dict], awards: list[dict], rates: dict[tuple[str, str], float]) -> None:
-    month = {t["notice_id"]: (t["award_date"] or t["publication_date"]).strftime("%Y-%m") for t in tenders}
-    for t in tenders:
-        t["value_eur"] = ecb_fx.to_eur(t["value"], t["currency"], month[t["notice_id"]], rates)
-    for a in awards:
-        a["value_eur"] = ecb_fx.to_eur(a["value"], a["currency"], month[a["notice_id"]], rates)
-
-
-# ---------------------------------------------------------------- DB writes (short-lived connections)
-
-TENDER_COLS = ["notice_id", "country", "buyer", "cpv", "value_eur", "award_date", "winner_name", "winner_id",
-               "notice_type", "publication_date", "buyer_legal_type", "cpv_all", "value", "currency",
-               "value_field", "n_winners", "source_url", "api_query", "retrieved_at", "raw_json",
-               "is_framework", "title"]
-AWARD_COLS = ["notice_id", "seq", "winner_name", "winner_id", "value", "currency", "value_eur", "alignment", "grade",
-              "evidence", "source_url", "scope_note"]
-
-
-def _batches(rows: list, n: int):
-    for i in range(0, len(rows), n):
-        yield rows[i:i + n]
-
-
-def save(tenders: list[dict], awards: list[dict], fx: list[ecb_fx.FxRate],
-         db_path: Path | str | None = None, batch_size: int = WRITE_BATCH) -> None:
-    """Upsert in batches; each batch opens, writes and closes its own connection."""
-    with connect(db_path) as con:
-        init_db(con)
-        if fx:
-            con.executemany(
-                "INSERT OR REPLACE INTO fx_rates VALUES (?, ?, ?, ?, ?)",
-                [(r.currency, r.month, r.units_per_eur, r.source_url, r.retrieved_at) for r in fx],
-            )
-    by_notice: dict[str, list[dict]] = {}
-    for a in awards:
-        by_notice.setdefault(a["notice_id"], []).append(a)
-    for batch in _batches(tenders, batch_size):
-        ids = [t["notice_id"] for t in batch]
-        with connect(db_path) as con:
-            con.execute("BEGIN")
-            con.executemany(
-                f"INSERT OR REPLACE INTO tenders ({', '.join(TENDER_COLS)}) VALUES ({', '.join('?' * len(TENDER_COLS))})",
-                [[t[c] for c in TENDER_COLS] for t in batch],
-            )
-            con.execute("DELETE FROM tender_awards WHERE list_contains(?, notice_id)", [ids])
-            rows = [[a[c] for c in AWARD_COLS] for nid in ids for a in by_notice.get(nid, [])]
-            if rows:
-                con.executemany(f"INSERT INTO tender_awards ({', '.join(AWARD_COLS)}) VALUES ({', '.join('?' * len(AWARD_COLS))})", rows)
-            con.execute("COMMIT")
 
 
 # ---------------------------------------------------------------- orchestration

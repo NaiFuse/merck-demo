@@ -1,0 +1,80 @@
+# Academia buyer filter (all tender sources). Used by src/models/academia.py.
+#
+# A notice is kept if its buyer is in a KEEP category. Multi-buyer names ("A; B; C") are kept if any part is.
+# Order per buyer part: exclude_first -> keep -> exclude -> buyer-type fallback -> 'unclassified' (excluded).
+# Patterns are case-insensitive regexes on the accent-folded buyer name (é -> e, ä -> a, ø -> o, ...).
+
+keep:
+  university_consortium:   # purchasing consortia that buy for universities
+    - '\bsupc\b|southern universities purchasing'
+    - '\bneupc\b|north eastern universities purchasing'
+    - '\blupc\b|london universities purchasing'
+    - '\bapuc\b|advanced procurement for universities'
+    - '\bnwupc\b|\bhepcw\b|universities purchasing|purchasing consortium.*universit'
+    - 'education procurement service'          # IE: buys lab/research supplies for universities (TCD, Galway)
+  university:
+    - 'universit|hochschule|hogskol|hoegskol|yliopisto|korkeakoulu|haskoli|\bcollege\b.*\b(dublin|london|university)\b'
+    - 'trinity college|imperial college|king.s college|karolinska institutet|\bdtu\b|\bntnu\b|\bulb\b|\bvub\b|\bkth\b'
+    - 'tekniska hogskolan|technische universitat|institut agro'
+  hospital_purchasing:     # central purchasing for hospitals (buy on behalf of hospitals)
+    - '\bresah\b|\buniha\b|\bageps\b|health service executive|feidhmeannacht na seirbhise slainte|sykehusinnkjop'
+    - 'healthcare public procurement|hecapp|business services organisation|shared services partnership'
+    - 'varuforsorjningen|prospitalia|helse .* rhf|iris-achats|hospilim'
+  hospital:
+    - 'hospital|hopita|hopitau|\bchu\b|\bchr\b|\bchru\b|centre hospitalier|\bch\b |\bghr\b|\bght\b|klinik|krankenhaus|spital'
+    - 'sjukhus|sykehus|sygehus|ziekenhuis|\bzas\b|\buz\b|\baz\b |\bazorg\b|medisch centrum|\bumc\b|\blumc\b|erasmus mc|sairaala'
+    - 'universitatsmedizin|universitatsklinikum|cliniques universitaires|chwapi|vitaz|humani|\bnhs\b|teaching hospitals'
+    - 'labor berlin|fimlab|nordlab|islab|etablissement francais du sang|\befs\b|children.s health ireland'
+    - 'hospices civils|assistance publique|\bap-?hp\b|gesundheitsverbund|landeskliniken|krankenanstalt|gesundheitsholding'
+    - 'unicancer|institut curie|auragen|gcs de biologie|cooperation sanitaire|\bgcs\b|\baphm|oncopole|verzorgingsinstelling'
+  health_region:           # regional authorities that run hospitals (SE/DK regions, FI wellbeing counties, HUS)
+    - '^region |^regionen |\bregion (stockholm|skane|vasternorrland|vasterbotten|ostergotland|norrbotten|dalarna|gavleborg|uppsala|blekinge|kalmar|jonkopings|midtjylland|nordjylland|syddanmark|sjaelland|hovedstaden)'
+    - 'vastra gotalandsregionen|hyvinvointialue|hyvinvointiyhtyma|\bhus\b|hus-yhtyma'
+  research:
+    - 'institut|institute|instituut|instituttet|insituttet|forschung|research|recherche|tutkimus|forskning'
+    - '\bcnrs\b|\binserm\b|\binrae\b|\bird\b|\bcea\b|max-planck|fraunhofer|helmholtz|leibniz|\bdlr\b|\bdzne\b|\bvib\b'
+    - 'akademie van wetenschappen|\bknaw\b|sck.?cen|\bvtt\b|\bnorce\b|joint research centre|\bjrc\b|luonnonvarakeskus'
+    - 'havforskning|ctc-cpde|wageningen|deutsches zentrum fur'
+  gov_lab:                 # public health / food / consumer protection / forensic / standards labs
+    - '\brivm\b|volksgezondheid|forensisch|sciensano|swissmedic|folkhalsomyndigheten|folkhelse|terveyden ja hyvinvoinnin'
+    - 'landesamt fur (verbraucherschutz|gesundheit|umwelt|landwirtschaft)|bundesanstalt fur (materialforschung|landwirtschaft)'
+    - 'agentur fur gesundheit|\bages\b|ruokavirasto|tyoterveyslaitos|arbeidsmiljoinstitutt|paul-ehrlich'
+    - 'health security agency|polismyndigheten|kripos|keskusrikospoliisi|poliisilaitos|gip labeo|inovalys|public labos'
+    - 'nederlandse algemene kwaliteitsdienst|totalforsvarets forskningsinstitut|justiz und verbraucherschutz'
+
+exclude_first:             # checked before KEEP (names that would otherwise match a keep pattern)
+  school:
+    - '\bschool|schule|gymnasium|\bcollege\b(?!.*(universit|dublin|london))|lycee|\becole\b|enseignement'
+    - 'education and training board|lehre und bildung|aptaskil|^firda$'
+  school_consortium:
+    - '\bypo\b|\bespo\b|scotland excel|findel|texet'
+  municipality_name:       # 'Universitatsstadt' contains 'universit'
+    - 'universitatsstadt'
+  utility:
+    - 'water|\beaux?\b|wasser|vatten|\bvand\b|stadtentwasserung|entsorgung|vitens|kappalaforbundet|\bfors a/s\b'
+    - 'canal de provence|\bsydec\b|\bcciag\b|acqua publica|biofos|aquafin|affaldsenergi|\bsyctom\b|\bsiaap\b'
+
+exclude:
+  municipality:
+    - '\bstadt\b|\bville\b|\bcommune\b|communaute|agglomeration|metropole|departement|conseil departemental|\bcg des\b'
+    - 'collectivite|city council|county council|\bkommune\b|\bstad\b|gemeente|socialforvaltningen|grand chambery'
+    - '^ca de |provinci|landkreis|\bkreis\b|\bcommune\b|\bsinfra\b'
+  general_purchasing:      # general public purchasing bodies (not buying for universities/hospitals)
+    - 'hansel oy|landesamt fur innere verwaltung|logistik zentrum|competence center.*beschaffung|zentrale beschaffung'
+    - 'regierungsprasidium|generalzolldirektion|bundeswehr|ministerie|ministere|department of|secretary of state'
+    - 'european commission|health and digital executive agency|\bgiz\b|unfallversicherung|gesundheitskasse'
+    - 'crown commercial service|adda inkopscentral|bundesbeschaffung|forsvaret|forsvarets|kammarkollegiet|statens indkob|\bskl kommentus'
+  other_public:
+    - 'fraport|wismut|nuclear restoration|norsk helsenett|sykehusbygg|solar foods|genomescan'
+
+# Buyer-type fallback when no name rule matched
+type_fallback:
+  uk_fts:                  # FTS buyer classification: '<type>;<main activity>'
+    WATER: utility
+    ';09': university      # education (only reached if no school/consortium name matched)
+    ';07': hospital        # health
+  ted:                     # TED buyer legal type
+    la: municipality
+    spec-rights-entity: utility
+
+keep_categories: [university_consortium, university, hospital, hospital_purchasing, health_region, research, gov_lab]

@@ -1,0 +1,46 @@
+{
+  "links": {"next": "https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages?cursor=abc"},
+  "releases": [
+    {
+      "ocid": "ocds-h6vhtk-000001", "id": "010000-2025", "date": "2025-03-01T10:00:00+00:00", "tag": ["award"],
+      "buyer": {"id": "GB-FTS-1", "name": "University of Oxford"},
+      "tender": {"title": "Laboratory consumables and reagents", "classification": {"scheme": "CPV", "id": "33696500"},
+                 "items": [{"id": "1", "relatedLot": "1", "additionalClassifications": [{"scheme": "CPV", "id": "38437110"}]}],
+                 "lots": [{"id": "1", "title": "Reagents"}, {"id": "2", "title": "Pipette tips"}, {"id": "3", "title": "Milli-Q water systems"}],
+                 "techniques": {"hasFrameworkAgreement": true}},
+      "parties": [
+        {"id": "GB-FTS-1", "name": "University of Oxford", "roles": ["buyer"], "address": {"countryName": "United Kingdom"}},
+        {"id": "GB-FTS-2", "name": "Fisher Scientific UK Ltd", "roles": ["supplier"], "identifier": {"scheme": "GB-COH", "id": "00011111"}},
+        {"id": "GB-FTS-3", "name": "VWR International Ltd", "roles": ["supplier"]},
+        {"id": "GB-FTS-4", "name": "Starlab (UK) Ltd", "roles": ["supplier"]},
+        {"id": "GB-FTS-5", "name": "Merck Life Science UK Limited", "roles": ["supplier"]}
+      ],
+      "awards": [
+        {"id": "010000-2025-1", "status": "active", "relatedLots": ["1"], "suppliers": [{"id": "GB-FTS-2", "name": "Fisher Scientific UK Ltd"}]},
+        {"id": "010000-2025-2", "status": "active", "relatedLots": ["2"],
+         "suppliers": [{"id": "GB-FTS-3", "name": "VWR International Ltd"}, {"id": "GB-FTS-4", "name": "Starlab (UK) Ltd"}]},
+        {"id": "010000-2025-3", "status": "active", "relatedLots": ["3"], "suppliers": [{"id": "GB-FTS-5", "name": "Merck Life Science UK Limited"}]}
+      ],
+      "contracts": [
+        {"id": "c1", "awardID": "010000-2025-1", "value": {"amount": 500000, "currency": "GBP"}, "dateSigned": "2025-02-01T00:00:00+00:00"},
+        {"id": "c2", "awardID": "010000-2025-2", "value": {"amount": 200000, "currency": "GBP"}},
+        {"id": "c3", "awardID": "010000-2025-3", "value": {"amount": 30000, "currency": "GBP"}}
+      ]
+    },
+    {
+      "ocid": "ocds-h6vhtk-000001", "id": "020000-2025", "date": "2025-05-01T10:00:00+00:00", "tag": ["contract"],
+      "buyer": {"id": "GB-FTS-1", "name": "University of Oxford"},
+      "tender": {"title": "Laboratory consumables and reagents", "classification": {"scheme": "CPV", "id": "33696500"},
+                 "lots": [{"id": "1", "title": "Reagents"}]},
+      "parties": [{"id": "GB-FTS-2", "name": "Fisher Scientific UK Ltd", "roles": ["supplier"], "identifier": {"scheme": "GB-COH", "id": "00011111"}}],
+      "awards": [{"id": "020000-2025-1", "status": "active", "relatedLots": ["1"], "suppliers": [{"id": "GB-FTS-2", "name": "Fisher Scientific UK Ltd"}]}],
+      "contracts": [{"id": "c9", "awardID": "020000-2025-1", "value": {"amount": 480000, "currency": "GBP"}}]
+    },
+    {
+      "ocid": "ocds-h6vhtk-000002", "id": "030000-2025", "date": "2025-04-01T10:00:00+00:00", "tag": ["award"],
+      "tender": {"title": "Gas supply", "classification": {"scheme": "CPV", "id": "09121000"}},
+      "awards": [{"id": "030000-2025-1", "status": "active", "suppliers": [{"id": "x", "name": "Gas Co"}]}],
+      "contracts": [{"id": "c", "awardID": "030000-2025-1", "value": {"amount": 1600000, "currency": "GBP"}}]
+    }
+  ]
+}

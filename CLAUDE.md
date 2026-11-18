@@ -22,7 +22,8 @@ Python 3.12, uv, DuckDB (data/demo.duckdb), httpx, pydantic, pandas, Anthropic S
 (model name from env var ANTHROPIC_MODEL), Streamlit + Plotly for the dashboard, pytest.
 
 ## Folder structure
-src/connectors/   one file per source (ted, edgar, eurostat, companies_house, inpi, cordis, openalex)
+src/connectors/   one file per source (ted, uk_fts, edgar, eurostat, companies_house, inpi, cordis, openalex);
+                  tender_store.py = shared tender writes (batched, rule 7)
 src/extract/      LLM extraction from PDFs with quotes
 src/models/       taxonomy, peer restatement, demand model, share bridge
 src/app/          Streamlit pages
@@ -36,8 +37,10 @@ facts(id, document_id, entity, period, metric, value, unit, region, segment, quo
 assumptions(id, key, value_low, value_base, value_high, source, grade, note)
 tenders(notice_id, country, buyer, cpv, value_eur, award_date, winner_name, winner_id,
         + provenance: notice_type, publication_date, buyer_legal_type, cpv_all, value, currency,
-          value_field, n_winners, source_url, api_query, retrieved_at, raw_json)
-tender_awards(notice_id, seq, winner_name, winner_id, value, currency, value_eur, alignment, grade)
+          value_field, n_winners, source_url, api_query, retrieved_at, raw_json, is_framework, title,
+          source = 'ted' | 'uk_fts'; FTS notice_ids are prefixed 'FTS-')
+tender_awards(notice_id, seq, winner_name, winner_id, value, currency, value_eur, alignment, grade,
+              evidence, source_url, scope_note)
 fx_rates(currency, month, units_per_eur, source_url, retrieved_at)
 market_cells(segment, category, cluster, year, method, value_low, value_base, value_high, grade)
 
@@ -47,6 +50,9 @@ Peers: Thermo Fisher, Avantor. Clusters: DACH, France & Benelux, UK & Nordics.
 Methods: A = supply side (restated peer revenue + others), B = demand side (R&D spend x
 consumables intensity). Publish a cell only if A and B are within 15%, else show a range.
 DS EMEA revenue = public-data estimate, adjustable slider (grade C).
+Tender win shares (TED + UK FTS, src/models/tender_report.py): default view = core CPV, Academia buyers only
+(config/academia_buyers.yaml), excl. IVD winners, analyser bundles and Merck lab water; frameworks incl.
+framework-like notices (>= 5 suppliers, equal split). Win shares, not market shares.
 Phase-2 placeholders: Pharma, Industry & Service, customer survey, exact DS share.
 
 ## Product categories (DS-equivalent)

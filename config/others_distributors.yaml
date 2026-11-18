@@ -1,0 +1,50 @@
+# Review list for the top 'Others' tender winners (tender_report tables 3a/3b).
+# Does NOT change winner-group mappings (src/models/winners.py).
+#
+# type:              distributor | manufacturer | consortium | other
+# sells_merck_sigma: yes (to verify) | possible (to verify) | "no" (quoted: bare no is YAML false) | unknown
+# basis:             why. All marks are UNVERIFIED general knowledge (grade C) – to be checked against the
+#                    distributor's own catalogue / Merck's published distributor list before any use.
+
+companies:
+  scientific laboratory supplies:     {type: distributor,  sells_merck_sigma: yes (to verify),      basis: "UK lab distributor, long-standing Sigma-Aldrich/Merck reseller"}
+  th. geyer:                          {type: distributor,  sells_merck_sigma: yes (to verify),      basis: "German lab distributor, carries Merck lab chemicals"}
+  camlab:                             {type: distributor,  sells_merck_sigma: possible (to verify), basis: "UK multi-brand lab distributor"}
+  appleton woods:                     {type: distributor,  sells_merck_sigma: possible (to verify), basis: "UK multi-brand lab distributor"}
+  thistle scientific:                 {type: distributor,  sells_merck_sigma: possible (to verify), basis: "UK (Scotland) multi-brand lab distributor"}
+  dominique dutscher:                 {type: distributor,  sells_merck_sigma: possible (to verify), basis: "French multi-brand lab distributor"}
+  labo moderne:                       {type: distributor,  sells_merck_sigma: possible (to verify), basis: "French lab equipment/consumables distributor"}
+  premier scientific:                 {type: distributor,  sells_merck_sigma: unknown,              basis: "Irish lab distributor; brand range not checked"}
+  total lab supplies:                 {type: distributor,  sells_merck_sigma: unknown,              basis: "UK lab supplier; brand range not checked"}
+  london laboratory equipment:        {type: distributor,  sells_merck_sigma: unknown,              basis: "UK lab supplier; brand range not checked"}
+  alpha laboratories:                 {type: distributor,  sells_merck_sigma: unknown,              basis: "UK lab consumables supplier, partly own brand"}
+  triolab:                            {type: distributor,  sells_merck_sigma: unknown,              basis: "Nordic distributor, mainly diagnostics/lab"}
+  nordic biosite:                     {type: distributor,  sells_merck_sigma: unknown,              basis: "Nordic distributor of research reagents (antibodies, kits)"}
+  clinisciences:                      {type: distributor,  sells_merck_sigma: unknown,              basis: "French distributor of research reagents"}
+  eurobio scientific:                 {type: distributor,  sells_merck_sigma: unknown,              basis: "French distributor/manufacturer, diagnostics and life science"}
+  labelians:                          {type: distributor,  sells_merck_sigma: unknown,              basis: "French lab distribution group; brand range not checked"}
+  pamark business:                    {type: distributor,  sells_merck_sigma: unknown,              basis: "Finnish supplier; not checked"}
+  onemed:                             {type: distributor,  sells_merck_sigma: "no",                  basis: "medical/healthcare supplies distributor"}
+  vingmed:                            {type: distributor,  sells_merck_sigma: "no",                  basis: "Nordic medtech distributor"}
+  lyreco finland:                     {type: distributor,  sells_merck_sigma: "no",                  basis: "office/workplace supplies"}
+  starlab (uk):                       {type: manufacturer, sells_merck_sigma: "no",                  basis: "own-brand lab plastics"}
+  fluorochem:                         {type: manufacturer, sells_merck_sigma: "no",                  basis: "fine-chemicals manufacturer (competitor)"}
+  sarstedt:                           {type: manufacturer, sells_merck_sigma: "no",                  basis: "lab/medical plastics manufacturer"}
+  sarstedt aktiebolag:                {type: manufacturer, sells_merck_sigma: "no",                  basis: "Sarstedt subsidiary"}
+  greiner bio-one:                    {type: manufacturer, sells_merck_sigma: "no",                  basis: "lab plastics manufacturer"}
+  10x genomics:                       {type: manufacturer, sells_merck_sigma: "no",                  basis: "single-cell instruments/reagents"}
+  illumina danmark:                   {type: manufacturer, sells_merck_sigma: "no",                  basis: "sequencing instruments/reagents"}
+  illumina denmark:                   {type: manufacturer, sells_merck_sigma: "no",                  basis: "sequencing instruments/reagents"}
+  illumina:                           {type: manufacturer, sells_merck_sigma: "no",                  basis: "sequencing instruments/reagents"}
+  twist bioscience corporation:       {type: manufacturer, sells_merck_sigma: "no",                  basis: "synthetic DNA"}
+  becton, dickinson u.k:              {type: manufacturer, sells_merck_sigma: "no",                  basis: "medtech / diagnostics"}
+  becton dickinson sweden aktiebolag: {type: manufacturer, sells_merck_sigma: "no",                  basis: "medtech / diagnostics"}
+  becton dickinson france:            {type: manufacturer, sells_merck_sigma: "no",                  basis: "medtech / diagnostics"}
+  bio-rad france:                     {type: manufacturer, sells_merck_sigma: "no",                  basis: "life science / diagnostics manufacturer"}
+  agilent technologies france:        {type: manufacturer, sells_merck_sigma: "no",                  basis: "instruments and consumables manufacturer"}
+  qiagen:                             {type: manufacturer, sells_merck_sigma: "no",                  basis: "sample/assay technologies manufacturer"}
+  hettich labinstrument:              {type: manufacturer, sells_merck_sigma: "no",                  basis: "centrifuges"}
+  aidian:                             {type: manufacturer, sells_merck_sigma: "no",                  basis: "diagnostics manufacturer/distributor"}
+  biosynex:                           {type: manufacturer, sells_merck_sigma: "no",                  basis: "diagnostics manufacturer"}
+  elitech microbio:                   {type: manufacturer, sells_merck_sigma: "no",                  basis: "diagnostics manufacturer"}
+  laboratoires nephrotek:             {type: other,        sells_merck_sigma: unknown,              basis: "not checked"}

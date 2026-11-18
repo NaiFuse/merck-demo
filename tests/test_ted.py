@@ -6,7 +6,7 @@ import pytest
 
 from pathlib import Path
 
-from src.connectors import ted, ted_xml
+from src.connectors import ted, ted_xml, tender_store
 from src.connectors.ted import Slice
 from src.db import connect
 
@@ -134,8 +134,8 @@ def test_save_upserts_in_batches_with_short_connections(tmp_path, monkeypatch):
     ted.apply_fx(tenders, awards, {("SEK", "2025-02"): 11.25})
 
     opened = []
-    real_connect = ted.connect
-    monkeypatch.setattr(ted, "connect", lambda p=None: opened.append(p) or real_connect(p))
+    real_connect = tender_store.connect
+    monkeypatch.setattr(tender_store, "connect", lambda p=None: opened.append(p) or real_connect(p))
     path = tmp_path / "t.duckdb"
     ted.save(tenders, awards, [], path, batch_size=2)
     ted.save(tenders, awards, [], path, batch_size=2)  # idempotent re-run
@@ -160,8 +160,8 @@ def test_run_fetch_never_holds_db_during_network(tmp_path, monkeypatch):
             state["open"] -= 1
             return self.con.__exit__(*exc)
 
-    real_connect = ted.connect
-    monkeypatch.setattr(ted, "connect", lambda p=None: TrackedCon(real_connect(p)))
+    real_connect = tender_store.connect
+    monkeypatch.setattr(tender_store, "connect", lambda p=None: TrackedCon(real_connect(p)))
 
     def net(*a, **k):
         state["network_while_open"] += state["open"] > 0
