@@ -25,7 +25,7 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-from src.extract.numbers import quote_contains_value
+from src.extract.numbers import quote_contains_value, unit_multiplier
 from src.facts_store import FactRow
 from src.settings import PROJECT_ROOT, get_settings
 
@@ -253,6 +253,33 @@ def verify_record(path: Path, record: dict) -> tuple[list[FactRow], list[Checked
     return [to_fact_row(doc, c, retrieved_at) for c in checked if c.ok], [c for c in checked if not c.ok]
 
 
+def dedupe_facts(rows: list[FactRow]) -> tuple[list[FactRow], list[FactRow]]:
+    """Same figure stated twice in one document (e.g. 'Umsatz 101.035 TEUR' in the management report and
+    'Umsatzerlöse 101.034.745,26' in the income statement): same entity/period/metric/region/segment, values equal
+    within the coarser figure's display rounding. Keeps the more precise one. Returns (kept, dropped)."""
+    def base(r):
+        return r.value * unit_multiplier(r.unit) if r.unit != "%" else r.value
+
+    def step(r):  # half a display unit of the coarser figure, in base units
+        if r.unit == "%":
+            return 0.05
+        return 0.5 * unit_multiplier(r.unit) * (1 if float(r.value).is_integer() else 0.1)
+
+    kept: list[FactRow] = []
+    dropped: list[FactRow] = []
+    for r in sorted(rows, key=lambda x: (unit_multiplier(x.unit) if x.unit != "%" else 0, x.extra.get("page") or 0)):
+        dup = next((k for k in kept if (k.url_or_path, k.entity, k.period, k.metric, k.region, k.segment)
+                    == (r.url_or_path, r.entity, r.period, r.metric, r.region, r.segment)
+                    and (k.unit == "%") == (r.unit == "%")
+                    and abs(base(k) - base(r)) <= max(step(k), step(r))), None)
+        if dup is None:
+            kept.append(r)
+        else:
+            dup.extra.setdefault("duplicates", []).append(f"p.{r.extra.get('page')}: {r.value} {r.unit}")
+            dropped.append(r)
+    return kept, dropped
+
+
 def pdf_paths(paths: list[Path] | None = None) -> list[Path]:
     out = []
     for p in paths or DEFAULT_DIRS:
@@ -268,6 +295,7 @@ def verify_all_cached(paths: list[Path] | None = None, cache_dir: Path = CACHE_D
         if not cf.exists():
             continue
         ok, bad = verify_record(p, json.loads(cf.read_text(encoding="utf-8")))
+        ok, _ = dedupe_facts(ok)
         accepted += ok
         rejected += [(p.name, c) for c in bad]
     return accepted, rejected

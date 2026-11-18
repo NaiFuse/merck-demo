@@ -23,6 +23,41 @@ def apply_scope_flags(tenders: list[dict], awards: list[dict]) -> None:
         a["scope_note"] = tag_lab_water(a["winner_name"], t.get("title"), a.get("_own_text"), others)
 
 
+PLACEHOLDER_NOTE = " [negative placeholder value (e.g. TED -1 = not disclosed) stored as NULL]"
+
+
+def null_placeholder_values(tenders: list[dict], awards: list[dict]) -> int:
+    """Negative amounts are 'not disclosed' placeholders (TED uses -1): store NULL, keep the raw value in the
+    evidence/value_field text and raw_json. Awards become alignment 'no_value', grade C. Returns rows changed."""
+    n = 0
+    for t in tenders:
+        if t.get("value") is not None and t["value"] < 0:
+            t["value_field"] = f"{t.get('value_field') or ''} raw={t['value']}{PLACEHOLDER_NOTE}".strip()
+            t["value"] = None
+            n += 1
+    for a in awards:
+        if a.get("value") is not None and a["value"] < 0:
+            a["evidence"] = f"{a.get('evidence') or ''}{PLACEHOLDER_NOTE}"
+            a["value"], a["alignment"], a["grade"] = None, "no_value", "C"
+            n += 1
+    return n
+
+
+def migrate_placeholders(db_path: Path | str | None = None) -> dict:
+    """One-off fix for rows stored before null_placeholder_values existed."""
+    with connect(db_path) as con:
+        init_db(con)
+        con.execute("BEGIN")
+        t = con.execute("SELECT count(*) FROM tenders WHERE value < 0 OR value_eur < 0").fetchone()[0]
+        a = con.execute("SELECT count(*) FROM tender_awards WHERE value < 0 OR value_eur < 0").fetchone()[0]
+        con.execute("UPDATE tenders SET value_field = trim(coalesce(value_field, '') || ' raw=' || value || ?), "
+                    "value = NULL, value_eur = NULL WHERE value < 0 OR value_eur < 0", [PLACEHOLDER_NOTE])
+        con.execute("UPDATE tender_awards SET evidence = coalesce(evidence, '') || ?, value = NULL, value_eur = NULL, "
+                    "alignment = 'no_value', grade = 'C' WHERE value < 0 OR value_eur < 0", [PLACEHOLDER_NOTE])
+        con.execute("COMMIT")
+    return {"tenders": t, "awards": a}
+
+
 def apply_fx(tenders: list[dict], awards: list[dict], rates: dict[tuple[str, str], float]) -> None:
     month = {t["notice_id"]: (t["award_date"] or t["publication_date"]).strftime("%Y-%m") for t in tenders}
     for t in tenders:
@@ -49,6 +84,13 @@ def _batches(rows: list, n: int):
 def save(tenders: list[dict], awards: list[dict], fx: list[ecb_fx.FxRate],
          db_path: Path | str | None = None, batch_size: int = WRITE_BATCH) -> None:
     """Upsert in batches; each batch opens, writes and closes its own connection."""
+    null_placeholder_values(tenders, awards)
+    for t in tenders:   # recompute EUR after nulling (apply_fx may have converted the placeholder)
+        if t.get("value") is None:
+            t["value_eur"] = None
+    for a in awards:
+        if a.get("value") is None:
+            a["value_eur"] = None
     with connect(db_path) as con:
         init_db(con)
         if fx:
@@ -72,3 +114,7 @@ def save(tenders: list[dict], awards: list[dict], fx: list[ecb_fx.FxRate],
             if rows:
                 con.executemany(f"INSERT INTO tender_awards ({', '.join(AWARD_COLS)}) VALUES ({', '.join('?' * len(AWARD_COLS))})", rows)
             con.execute("COMMIT")
+
+
+if __name__ == "__main__":
+    print("placeholder rows set to NULL:", migrate_placeholders())

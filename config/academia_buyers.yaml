@@ -41,6 +41,7 @@ keep:
     - 'agentur fur gesundheit|\bages\b|ruokavirasto|tyoterveyslaitos|arbeidsmiljoinstitutt|paul-ehrlich'
     - 'health security agency|polismyndigheten|kripos|keskusrikospoliisi|poliisilaitos|gip labeo|inovalys|public labos'
     - 'nederlandse algemene kwaliteitsdienst|totalforsvarets forskningsinstitut|justiz und verbraucherschutz'
+    - 'environment, food and rural affairs|\bdefra\b'   # UK Defra network (APHA, Cefas, Fera labs)
 
 exclude_first:             # checked before KEEP (names that would otherwise match a keep pattern)
   school:
@@ -53,6 +54,14 @@ exclude_first:             # checked before KEEP (names that would otherwise mat
   utility:
     - 'water|\beaux?\b|wasser|vatten|\bvand\b|stadtentwasserung|entsorgung|vitens|kappalaforbundet|\bfors a/s\b'
     - 'canal de provence|\bsydec\b|\bcciag\b|acqua publica|biofos|aquafin|affaldsenergi|\bsyctom\b|\bsiaap\b'
+
+# Conditional keep: buyer name matches AND the notice text (procedure title, lot titles/descriptions) matches.
+# French Departements: keep only when the purchase is for the departmental analysis lab (LDA / LVD).
+conditional_keep:
+  departmental_lab:
+    buyer: 'departement|conseil departemental|\bcg des\b|collectivite de corse|collectivite europeenne d.alsace'
+    text: 'laborato|analys|\blda\b|\blvd\b|\blab\b'
+    category: gov_lab_departmental
 
 exclude:
   municipality:
@@ -77,4 +86,5 @@ type_fallback:
     la: municipality
     spec-rights-entity: utility
 
-keep_categories: [university_consortium, university, hospital, hospital_purchasing, health_region, research, gov_lab]
+keep_categories: [university_consortium, university, hospital, hospital_purchasing, health_region, research, gov_lab,
+                  gov_lab_departmental]

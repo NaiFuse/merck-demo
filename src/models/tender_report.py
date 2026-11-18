@@ -16,6 +16,9 @@ Conventions
   hospitals and hospital purchasing bodies, hospital-running health regions, research organisations, government
   labs. Removed value and notices are reported per source (table 0a).
 - Framework-like notices (>= 5 suppliers, value split equally) count as frameworks.
+- Product scope: clinical blood-collection / sampling articles are excluded (title-based) and shown like IVD.
+- Winner groups: Thermo Fisher, Avantor, Merck, multi-brand distributors (independent lab distributors, no claim
+  about brands carried), others.
 - UK (FTS) coverage is the window of cached FTS months; periods running past it are marked
   'UK to <date>' (GB values there are missing, not zero).
 """
@@ -32,10 +35,10 @@ import pandas as pd
 from src.connectors.ted import load_cpv_config
 from src.connectors.uk_fts import coverage as fts_coverage
 from src.db import connect_readonly
-from src.models.academia import classify_buyer
+from src.models.academia import classify_buyer, notice_text
 from src.models.scope import LAB_WATER, LAB_WATER_POSSIBLE
 from src.models.taxonomy import load_taxonomy
-from src.models.winners import GROUP_LABELS, IVD, OTHER, PEER_GROUPS, _fold, clean_name, winner_group
+from src.models.winners import DISTRIBUTOR, GROUP_LABELS, IVD, OTHER, PEER_GROUPS, _fold, clean_name, is_multi_winner_string, winner_group
 
 FRAMEWORK_LABEL = "framework (ceiling, not spend)"
 WIN_SHARE_LABEL = "Win share in public tenders above EU/UK thresholds (not market share)"
@@ -54,6 +57,20 @@ def is_instrument_bundle(title) -> bool:
     return isinstance(title, str) and bool(INSTRUMENT_BUNDLE_RE.search(_fold(title)))
 
 
+# Product scope: clinical blood-collection and sampling articles (patient sampling, not lab consumables).
+# Title-based, like analyser bundles (_fold strips accents; o-slash is not decomposed, hence both spellings).
+CLINICAL_CONSUMABLES_RE = re.compile(
+    r"blood sampl|blood collection|blood draw|venous blood|venepuncture|venipuncture|vacutainer|"
+    r"phlebotom|blodprov|blodprøv|provtagning|provetagning|blutentnahme|blutabnahme|"
+    r"prelevements? sanguins?|prelevement de sang|bloedafname|verinayt|verinäyt"
+)
+CLINICAL_LABEL = "clinical consumables (out of scope)"
+
+
+def is_clinical_consumables(title) -> bool:
+    return isinstance(title, str) and bool(CLINICAL_CONSUMABLES_RE.search(_fold(title)))
+
+
 def period_label(d: date, window_start: date, window_end: date) -> str:
     if d.year == window_start.year and window_start > date(d.year, 1, 1):
         return f"{d.year} partial (from {window_start:%d %b})"
@@ -67,9 +84,13 @@ def load_awards(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
         SELECT a.notice_id, a.seq, a.winner_name, a.value_eur, a.alignment, a.grade, a.scope_note, a.evidence,
                t.country, t.publication_date, t.cpv, t.is_framework, t.buyer, t.title,
                t.value_eur AS notice_value_eur, t.currency, t.value AS notice_value,
-               coalesce(t.source, 'ted') AS source, t.buyer_legal_type
+               coalesce(t.source, 'ted') AS source, t.buyer_legal_type, t.raw_json
         FROM tender_awards a JOIN tenders t USING (notice_id)
     """).df()
+    texts = {nid: notice_text(raw, src, title) for nid, raw, src, title in
+             df[["notice_id", "raw_json", "source", "title"]].drop_duplicates("notice_id").itertuples(index=False)}
+    df = df.drop(columns="raw_json")
+    df["notice_text"] = df["notice_id"].map(texts)
     # TED uses -1 as a 'value not disclosed' placeholder (seen on DE notices): treat as no value, keep the raw row
     df["value_withheld"] = (df["value_eur"] < 0) | (df["notice_value_eur"] < 0)
     df.loc[df["value_eur"] < 0, "value_eur"] = float("nan")
@@ -91,10 +112,11 @@ def load_awards(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     df["is_framework"] = df["is_framework_declared"] | df["framework_like"]   # the 'frameworks' bucket
     df["instrument_bundle"] = df["title"].map(is_instrument_bundle)
     cls = {k: classify_buyer(*k) for k in
-           df[["buyer", "buyer_legal_type", "source"]].drop_duplicates().itertuples(index=False, name=None)}
-    keys = list(zip(df["buyer"], df["buyer_legal_type"], df["source"]))
+           df[["buyer", "buyer_legal_type", "source", "notice_text"]].drop_duplicates().itertuples(index=False, name=None)}
+    keys = list(zip(df["buyer"], df["buyer_legal_type"], df["source"], df["notice_text"]))
     df["buyer_category"] = [cls[k].category for k in keys]
     df["academia"] = [cls[k].keep for k in keys]
+    df["clinical_consumables"] = df["title"].map(is_clinical_consumables)
     return df
 
 
@@ -166,10 +188,12 @@ def value_by_country_source(d: pd.DataFrame, cluster: str) -> pd.DataFrame:
 
 
 def in_scope(df: pd.DataFrame, tier: str = "core", include_bundles: bool = False, academia: bool = True) -> pd.DataFrame:
-    """Default view: tier, Academia buyers only, minus IVD winners, Merck lab water and (unless include_bundles)
-    analyser bundles."""
+    """Default view: tier, Academia buyers only, minus IVD winners, clinical blood-collection consumables, Merck lab
+    water and (unless include_bundles) analyser bundles."""
     d = df if tier == "all" else df[df["tier"] == tier]
     d = d[(d["group"] != IVD) & (d["scope_note"] != LAB_WATER)]
+    if "clinical_consumables" in d.columns:
+        d = d[~d["clinical_consumables"]]
     if academia and "academia" in d.columns:
         d = d[d["academia"]]
     return d if include_bundles else d[~d["instrument_bundle"]]
@@ -267,10 +291,9 @@ def win_shares(d: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(cols)
 
 
-def top_others(d: pd.DataFrame, n: int = 15, by: str = "value_eur_m") -> pd.DataFrame:
-    """Top 'Others' winners by value or by award count, with the countries they won in and the (unverified)
-    Merck/Sigma-Aldrich distributor mark from config/others_distributors.yaml."""
-    o = d[d["group"] == OTHER].assign(company=lambda x: x["company"].replace("", "(winner name missing)"))
+def top_others(d: pd.DataFrame, n: int = 15, by: str = "value_eur_m", group: str = OTHER) -> pd.DataFrame:
+    """Top winners of one group (default 'Others') by value or by award count, with the countries they won in."""
+    o = d[d["group"] == group].assign(company=lambda x: x["company"].replace("", "(winner name missing)"))
     g = o.groupby("company").agg(value_eur_m=("value_eur", lambda s: s.sum() / 1e6),
                                  awards=("notice_id", "size"),
                                  notices=("notice_id", "nunique"),
@@ -283,22 +306,8 @@ def top_others(d: pd.DataFrame, n: int = 15, by: str = "value_eur_m") -> pd.Data
         order = sorted(k.index, key=lambda x: (-(v.get(x, 0) or 0), -k[x]))
         return ", ".join(order)
     g["countries"] = [countries(c) for c in g.index]
-    marks = load_distributor_marks()
-    g["merck_sigma_distributor"] = [marks.get(c, {}).get("sells_merck_sigma", "not reviewed") for c in g.index]
-    g["type"] = [marks.get(c, {}).get("type", "") for c in g.index]
-    cols = ["value_eur_m", "awards", "notices", "countries", "type", "merck_sigma_distributor", "example_name"]
+    cols = ["value_eur_m", "awards", "notices", "countries", "example_name"]
     return g.sort_values([by, "value_eur_m"], ascending=False).head(n)[cols]
-
-
-def load_distributor_marks() -> dict:
-    """{cleaned company name: {type, sells_merck_sigma, basis}} – review list, does not change winner mappings."""
-    import yaml
-    from src.settings import PROJECT_ROOT
-    path = PROJECT_ROOT / "config" / "others_distributors.yaml"
-    if not path.exists():
-        return {}
-    with open(path, encoding="utf-8") as f:
-        return (yaml.safe_load(f) or {}).get("companies", {})
 
 
 def value_by_grade(d: pd.DataFrame) -> pd.DataFrame:
@@ -335,6 +344,10 @@ def plausibility_checks(df: pd.DataFrame, d: pd.DataFrame) -> list[str]:
     huge = nv[nv["notice_value_eur"] > 50e6]
     for _, r in huge.iterrows():
         out.append(f"Notice over EUR 50m: {r.notice_id} EUR {r.notice_value_eur/1e6:,.0f}m, {r.country}, title={str(r.title)[:70]!r}")
+    multi = df[df["winner_name"].map(is_multi_winner_string)]
+    for _, r in multi.drop_duplicates("notice_id").iterrows():
+        out.append(f"Several winners typed into one winner field (kept in 'Others', not attributable): {r.notice_id} "
+                   f"EUR {(multi[multi.notice_id == r.notice_id]['value_eur'].sum())/1e6:,.2f}m {str(r.winner_name)[:80]!r}")
     # names that look like a peer but fell into 'other' / IVD
     sus = df[(df["group"].isin([OTHER, IVD]))
              & df["winner_name"].fillna("").str.lower().str.contains(r"fisher|thermo|sigma|millipore|vwr|avantor|merck")]
@@ -363,6 +376,8 @@ def main(argv: list[str] | None = None) -> None:
     with_bundles = in_scope(df, args.tier, include_bundles=True)
     bundles = with_bundles[with_bundles["instrument_bundle"]]
     ivd = tier_df[tier_df["group"] == IVD]
+    clin = in_scope(df.assign(clinical_consumables=False), args.tier)
+    clin = clin[clin["title"].map(is_clinical_consumables)]
     lw = tier_df[tier_df["scope_note"] == LAB_WATER]
     lwp = tier_df[tier_df["scope_note"] == LAB_WATER_POSSIBLE]
 
@@ -375,7 +390,7 @@ def main(argv: list[str] | None = None) -> None:
           f"({win_start} .. {win_end})")
     for note in COVERAGE_NOTES + uk_coverage_notes(cov, win_start, win_end):
         print(f"Coverage: {note}")
-    print(f"Default view (core CPV, Academia buyers, excl. IVD, analyser bundles, Merck lab water): "
+    print(f"Default view (core CPV, Academia buyers, excl. IVD, clinical consumables, analyser bundles, Merck lab water): "
           f"{d['notice_id'].nunique()} notices, {len(d)} awards, EUR {d['value_eur'].sum()/1e6:,.1f}m")
     print(f"Excluded – non-Academia buyers (schools, utilities, municipalities, general purchasing, unclassified): "
           f"{before_filter['notice_id'].nunique() - d['notice_id'].nunique()} notices, "
@@ -384,6 +399,8 @@ def main(argv: list[str] | None = None) -> None:
     print(f"Framework-like (>= {FRAMEWORK_LIKE_MIN_SUPPLIERS} suppliers, value split equally, not declared a framework): "
           f"{fl['notice_id'].nunique()} notices, EUR {fl['value_eur'].sum()/1e6:,.1f}m – counted in the frameworks bucket (table 0c)")
     print(f"Excluded – {GROUP_LABELS[IVD]}: {ivd['notice_id'].nunique()} notices, EUR {ivd['value_eur'].sum()/1e6:,.1f}m")
+    print(f"Excluded – {CLINICAL_LABEL} (blood collection/sampling, title-based): {clin['notice_id'].nunique()} notices, "
+          f"{len(clin)} awards, EUR {clin['value_eur'].sum()/1e6:,.1f}m (table 0d)")
     print(f"Excluded – analyser bundles (sensitivity): {bundles['notice_id'].nunique()} notices, {len(bundles)} awards, "
           f"EUR {bundles['value_eur'].sum()/1e6:,.1f}m (would add {bundles['value_eur'].sum()/max(d['value_eur'].sum(), 1):.0%} "
           f"to the default view)")
@@ -396,6 +413,9 @@ def main(argv: list[str] | None = None) -> None:
     print("0b) Kept buyers by category (EUR m, notices)\n", kept_by_category(d), "\n")
     print("0c) Framework-like notices (frameworks bucket); pre-filter view, academia=False ones are removed by 0a\n",
           framework_like_summary(before_filter), "\n")
+    print(f"0d) Excluded {CLINICAL_LABEL}\n", clin.groupby("notice_id").agg(
+        source=("source", "first"), country=("country", "first"), buyer=("buyer", "first"),
+        eur_m=("value_eur", lambda v: v.sum() / 1e6), title=("title", "first")).sort_values("eur_m", ascending=False), "\n")
     uk_cluster = load_taxonomy()["clusters"]["uk_ireland_nordics"]["label"]
     print("1) Default view: value and awards by cluster and period (EUR m)\n",
           mark_uk_coverage(value_by_cluster_period(d), beyond, cov_end, uk_cluster), "\n")
@@ -419,9 +439,10 @@ def main(argv: list[str] | None = None) -> None:
     dach = load_taxonomy()["clusters"]["dach"]["label"]
     print(f"2f) Merck win share in {dach} only (value % / awards %; frameworks incl. framework-like)\n",
           cluster_group_shares(d, dach, "merck"), "\n")
-    print("3a) Top 25 'Others' winners by value, default view (EUR m) – distributor mark is a review list, unverified\n",
-          top_others(d, 25, "value_eur_m"), "\n")
+    print("3a) Top 25 'Others' winners by value, default view (EUR m)\n", top_others(d, 25, "value_eur_m"), "\n")
     print("3b) Top 25 'Others' winners by award count, default view\n", top_others(d, 25, "awards"), "\n")
+    print(f"3c) {GROUP_LABELS[DISTRIBUTOR]} (independent multi-brand lab distributors; no claim about brands carried)\n",
+          top_others(d, 25, "value_eur_m", DISTRIBUTOR), "\n")
     print("4) Value by grade, default view (EUR m)\n", value_by_grade(d), "\n")
     print("5) Plausibility flags")
     for line in plausibility_checks(tier_df, d) or ["none"]:

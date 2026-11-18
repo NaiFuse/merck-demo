@@ -1,7 +1,7 @@
 import pytest
 
 from src.models.scope import LAB_WATER, LAB_WATER_POSSIBLE, is_lab_water, tag_lab_water
-from src.models.winners import AVANTOR, IVD, MERCK, OTHER, THERMO, clean_name, winner_group
+from src.models.winners import AVANTOR, DISTRIBUTOR, IVD, MERCK, OTHER, THERMO, clean_name, winner_group
 
 
 @pytest.mark.parametrize("name,group", [
@@ -60,3 +60,26 @@ def test_lab_water_only_tags_merck_and_distinguishes_possible():
     assert tag_lab_water("Merck Life Science AB", "Reagents", "Lösungsmittel", []) is None
     assert tag_lab_water("Sartorius Lab Instruments", "Reinstwasseranlage", None, []) is None
     assert not is_lab_water("Laborreagenzien und Chemikalien")
+
+
+@pytest.mark.parametrize("name,group", [
+    ("SCIENTIFIC LABORATORY SUPPLIES LIMITED", DISTRIBUTOR),
+    ("Th. Geyer GmbH & Co. KG", DISTRIBUTOR),
+    ("Camlab Ltd", DISTRIBUTOR),
+    ("Appleton Woods Limited", DISTRIBUTOR),
+    ("THISTLE SCIENTIFIC LIMITED", DISTRIBUTOR),
+    ("Dominique Dutscher", DISTRIBUTOR),
+    ("LABO MODERNE", DISTRIBUTOR),
+    ("Sarstedt AG & Co. KG", OTHER),            # manufacturer stays in others
+    ("VWR International GmbH", AVANTOR),        # peers win over the distributor group
+    ("Fisher Scientific GmbH", THERMO),
+])
+def test_multi_brand_distributors(name, group):
+    assert winner_group(name) == group
+
+
+def test_multi_winner_string_goes_to_others():
+    name = ("LEICA MICROSYSTEMS (lot 44) - Marché 26E192 QUIDEL (lot 12) - Marché 26E193 BIORAD (lot 30) - "
+            "CLINISCIENCES (lots 9-13-38)")
+    assert winner_group(name) == OTHER
+    assert winner_group("Camlab Ltd (lot 2)") == DISTRIBUTOR

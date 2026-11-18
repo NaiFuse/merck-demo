@@ -2,7 +2,9 @@
 
 import pytest
 
-from src.models.academia import classify_buyer
+import json
+
+from src.models.academia import classify_buyer, notice_text
 
 
 @pytest.mark.parametrize("name,legal,source,cat", [
@@ -57,3 +59,28 @@ def test_type_fallback_and_multi_buyer():
     assert classify_buyer("Somewhere", float("nan"), "ted").category == "unclassified"   # NaN legal type
     multi = classify_buyer("Hansel Oy; Pohjois-Pohjanmaan hyvinvointialue", "pub-undert;body-pl", "ted")
     assert multi.keep and multi.category == "health_region"
+
+
+def test_departements_kept_only_for_departmental_lab():
+    lab = "Fourniture de réactifs de biologie moléculaire pour le laboratoire Départemental d'analyses"
+    fuel = "Fourniture et livraison de carburants en vrac | Secteur Brive"
+    assert classify_buyer("Département de la Somme", "la", "ted", lab).category == "gov_lab_departmental"
+    assert classify_buyer("Conseil Départemental des Bouches du Rhône", "la", "ted",
+                          "FOURNITURE DE PRODUITS CHIMIQUES DESTINES AU LDA 13").keep
+    c = classify_buyer("Conseil Départemental de la Corrèze", "la", "ted", fuel)
+    assert not c.keep and c.category == "municipality"
+    assert not classify_buyer("Ville de Lyon", "la", "ted", lab).keep        # condition is for Departements only
+
+
+def test_defra_kept_as_gov_lab():
+    c = classify_buyer("DEPARTMENT OF ENVIRONMENT, FOOD AND RURAL AFFAIRS (Defra Network eTendering Portal)",
+                       "MINISTRY;05", "uk_fts")
+    assert c.keep and c.category == "gov_lab"
+
+
+def test_notice_text_reads_lot_titles():
+    ted = json.dumps({"title-proc": {"fra": "Consommables"}, "title-lot": {"fra": ["Lot 1 laboratoire", "Lot 2"]}})
+    assert "Lot 1 laboratoire" in notice_text(ted, "ted", "Titre")
+    fts = json.dumps({"tender": {"title": "T", "lots": [{"title": "Lab lot", "description": "analysis"}]}})
+    assert "analysis" in notice_text(fts, "uk_fts")
+    assert notice_text("not json", "ted", "only title") == "only title"

@@ -164,3 +164,28 @@ def test_coverage_reports_gaps(tmp_path):
     assert cov["missing_months"] == ["2025-02"] and cov["low_scan_months"] == []
     (tmp_path / "none").mkdir()
     assert uk_fts.coverage(tmp_path / "none") is None
+
+
+
+def test_placeholder_values_stored_as_null(tmp_path):
+    t = {"notice_id": "x", "value": -1.0, "value_field": "total-value"}
+    a = {"notice_id": "x", "value": -1.0, "alignment": "single", "grade": "A", "evidence": "total-value=-1"}
+    ok = {"notice_id": "y", "value": 5.0, "alignment": "single", "grade": "A", "evidence": "e"}
+    assert tender_store.null_placeholder_values([t], [a, ok]) == 2
+    assert t["value"] is None and "raw=-1.0" in t["value_field"]
+    assert (a["value"], a["alignment"], a["grade"]) == (None, "no_value", "C") and "placeholder" in a["evidence"]
+    assert ok["value"] == 5.0
+
+
+def test_migrate_placeholders(tmp_path):
+    db = tmp_path / "m.duckdb"
+    with connect(db) as con:
+        from src.db import init_db
+        init_db(con)
+        con.execute("INSERT INTO tenders (notice_id, value, value_eur) VALUES ('a', -1, -1), ('b', 10, 10)")
+        con.execute("INSERT INTO tender_awards (notice_id, seq, value, value_eur, alignment, grade) "
+                    "VALUES ('a', 0, -1, -1, 'single', 'A'), ('b', 0, 10, 10, 'single', 'A')")
+    assert tender_store.migrate_placeholders(db) == {"tenders": 1, "awards": 1}
+    with connect(db) as con:
+        assert con.execute("SELECT value, alignment, grade FROM tender_awards WHERE notice_id='a'").fetchone() == (None, "no_value", "C")
+        assert con.execute("SELECT value FROM tender_awards WHERE notice_id='b'").fetchone() == (10,)

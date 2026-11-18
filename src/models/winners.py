@@ -1,8 +1,12 @@
-"""Map raw tender winner names to corporate groups (Thermo Fisher, Avantor, Merck, IVD, other).
+"""Map raw tender winner names to corporate groups (Thermo Fisher, Avantor, Merck, multi-brand distributors,
+IVD, other).
 
 Patterns cover the parent name, legal entities and the main lab brands each group trades under.
 Names are matched case- and accent-insensitively. Order matters: exclusions run first, then the three
-peers, then IVD (so e.g. 'Thermo Fisher Diagnostics' stays Thermo Fisher).
+peers, then multi-brand lab distributors, then IVD (so e.g. 'Thermo Fisher Diagnostics' stays Thermo Fisher).
+
+Multi-brand distributors = independent lab distributors carrying many suppliers' brands. This separates them
+from manufacturers only; it makes no claim about which brands a distributor carries.
 
 IVD = clinical diagnostics vendors, out of scope for DS. Bio-Rad sells both life-science and clinical
 products under the same legal entities, so only Bio-Rad names that say 'clinical'/'diagnostic' go to IVD.
@@ -16,11 +20,13 @@ import unicodedata
 THERMO = "thermo_fisher"
 AVANTOR = "avantor"
 MERCK = "merck"
+DISTRIBUTOR = "distributor"
 IVD = "ivd"
 OTHER = "other"
-GROUPS = [THERMO, AVANTOR, MERCK, IVD, OTHER]
-PEER_GROUPS = [THERMO, AVANTOR, MERCK, OTHER]  # default report (IVD shown separately)
-GROUP_LABELS = {THERMO: "Thermo Fisher", AVANTOR: "Avantor", MERCK: "Merck", OTHER: "Others",
+GROUPS = [THERMO, AVANTOR, MERCK, DISTRIBUTOR, IVD, OTHER]
+PEER_GROUPS = [THERMO, AVANTOR, MERCK, DISTRIBUTOR, OTHER]  # default report (IVD shown separately)
+GROUP_LABELS = {THERMO: "Thermo Fisher", AVANTOR: "Avantor", MERCK: "Merck",
+                DISTRIBUTOR: "Multi-brand distributors", OTHER: "Others",
                 IVD: "IVD / diagnostics (out of scope)"}
 
 # Names that contain a group keyword but are a different company.
@@ -45,6 +51,13 @@ _PATTERNS: dict[str, list[str]] = {
         r"\bmerck\b", r"\bsigma[\s-]*aldrich\b", r"\bmillipore\b", r"\bmilliporesigma\b",
         r"\bsupelco\b", r"\bsafc\b", r"\bbioreliance\b",
     ],
+    DISTRIBUTOR: [
+        r"\bscientific laboratory supplies\b", r"\bth\.?\s?geyer\b", r"\bcamlab\b", r"\bappleton woods\b",
+        r"\bthistle scientific\b", r"\bdutscher\b", r"\blabo moderne\b", r"\bpremier scientific\b",
+        r"\btotal lab supplies\b", r"\blondon laboratory equipment\b", r"\btriolab\b", r"\bnordic biosite\b",
+        r"\bclinisciences\b", r"\blabelians\b", r"\bgrosseron\b", r"\bhounisen\b", r"\bbie\s*(&|og|and)\s*berntsen\b",
+        r"\bomnilab\b", r"\bbiozym\b",
+    ],
     IVD: [
         r"\broche\b", r"\bsysmex\b", r"\bsiemens healthineers\b", r"\bsiemens healthcare\b",
         r"\babbott\b", r"\bbeckman coulter\b", r"\bcepheid\b", r"\bradiometer\b", r"\bleica biosystems\b",
@@ -66,8 +79,18 @@ def _fold(name: str) -> str:
     return re.sub(r"\s+", " ", s.lower()).strip()
 
 
+_MULTI_WINNER_RE = re.compile(r"\blots?\b")
+
+
+def is_multi_winner_string(name: str | None) -> bool:
+    """Buyer typed several winners with their lots into one field ('X (lot 4) - Y (lots 2-5) - ...')."""
+    return isinstance(name, str) and len(_MULTI_WINNER_RE.findall(_fold(name))) >= 3
+
+
 def winner_group(name: str | None) -> str:
     if not isinstance(name, str) or not name:  # None or pandas NaN
+        return OTHER
+    if is_multi_winner_string(name):           # cannot be attributed to one group
         return OTHER
     s = _fold(name)
     if any(r.search(s) for r in _EXCLUDE_RE):

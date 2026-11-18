@@ -149,3 +149,24 @@ def test_cluster_group_shares_dach_merck():
     assert t.loc["2025", ("all awards", "value %")] == pytest.approx(130 / 200 * 100)
     assert t.loc["2025", ("excl. frameworks", "value %")] == pytest.approx(30.0)
     assert t.loc["2025", ("all awards", "awards %")] == pytest.approx(200 / 3)
+
+
+
+@pytest.mark.parametrize("title,flag", [
+    ("Blodprovtagningsartiklar 2025, SLL412", True),
+    ("HSE 21963 National Contract for Phlebotomy and Blood Collection", True),
+    ("Provtagningsmaterial inkl.vacuumrör", True),
+    ("Material zur Blutentnahme", True),
+    ("Fourniture de dispositifs de prélèvement sanguin", True),
+    ("Laboratory Consumables & Chemicals", False),
+    ("Fourniture de sachets de prélèvement pour le laboratoire", False),   # lab sampling bags, not blood
+])
+def test_clinical_consumables_flag(title, flag):
+    from src.models.tender_report import is_clinical_consumables
+    assert is_clinical_consumables(title) is flag
+
+
+def test_in_scope_drops_clinical_consumables():
+    df = _df()
+    df["clinical_consumables"] = [False, True, False, False, False, False]
+    assert list(in_scope(df)["notice_id"]) == ["n1", "n5"]

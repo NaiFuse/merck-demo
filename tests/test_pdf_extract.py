@@ -132,3 +132,19 @@ def test_missing_model_raises(doc, monkeypatch, tmp_path):
     monkeypatch.setattr(pdf, "get_settings", lambda: SimpleNamespace(anthropic_model=None, anthropic_api_key=None))
     with pytest.raises(RuntimeError, match="ANTHROPIC_MODEL"):
         pdf.extract(doc, client=StubClient([]), cache_dir=tmp_path)
+
+
+
+def test_dedupe_keeps_precise_figure_and_records_duplicate():
+    from datetime import datetime
+    from src.facts_store import FactRow
+
+    def r(value, unit, page, segment=None):
+        return FactRow("manual_pdf", "x.pdf", datetime(2026, 1, 1), "carl_roth", "FY2024", "revenue", value, unit,
+                       None, segment, "q", "A", {"page": page})
+    rows = [r(103115.0, "EUR_k", 1), r(103114540.40, "EUR", 4), r(75984418.56, "EUR", 10, "Inland"),
+            r(103200.0, "EUR_k", 2)]                         # differs by more than rounding: kept
+    kept, dropped = pdf.dedupe_facts(rows)
+    assert [(x.value, x.unit) for x in dropped] == [(103115.0, "EUR_k")]
+    assert len(kept) == 3
+    assert next(x for x in kept if x.unit == "EUR" and x.segment is None).extra["duplicates"] == ["p.1: 103115.0 EUR_k"]

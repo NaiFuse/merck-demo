@@ -52,8 +52,10 @@ Methods: A = supply side (restated peer revenue + others), B = demand side (R&D 
 consumables intensity). Publish a cell only if A and B are within 15%, else show a range.
 DS EMEA revenue = public-data estimate, adjustable slider (grade C).
 Tender win shares (TED + UK FTS, src/models/tender_report.py): default view = core CPV, Academia buyers only
-(config/academia_buyers.yaml), excl. IVD winners, analyser bundles and Merck lab water; frameworks incl.
-framework-like notices (>= 5 suppliers, equal split). Win shares, not market shares.
+(config/academia_buyers.yaml; hospitals count as Academia), excl. IVD winners, clinical blood-collection
+consumables, analyser bundles and Merck lab water; frameworks incl. framework-like notices (>= 5 suppliers,
+equal split). Groups: Thermo Fisher, Avantor, Merck, multi-brand distributors, others. Win shares, not market
+shares. Negative tender values (TED -1 = not disclosed) are stored as NULL.
 Phase-2 placeholders: Pharma, Industry & Service, customer survey, exact DS share.
 
 ## Product categories (DS-equivalent)
