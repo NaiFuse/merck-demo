@@ -1,0 +1,62 @@
+# Taxonomy for the Merck DS EMEA Academia demo. Source of truth: CLAUDE.md.
+# Keys (snake_case) are what the DB columns segment / category / cluster store.
+
+segments:
+  academia:
+    label: Academia
+    in_scope: true
+    includes: [universities, research institutes, hospitals, government labs]
+  pharma:
+    label: Pharma
+    in_scope: false   # phase-2 placeholder
+  industry_service:
+    label: Industry & Service
+    in_scope: false   # phase-2 placeholder
+
+clusters:
+  dach:
+    label: DACH
+    countries: [DE, AT, CH]
+  france_benelux:
+    label: France & Benelux
+    countries: [FR, BE, NL, LU]
+  uk_ireland_nordics:
+    label: UK, Ireland & Nordics
+    countries: [GB, IE, SE, NO, DK, FI, IS]
+
+categories:
+  chemistry_catalogue:
+    label: Chemistry catalogue
+  solvents_bulk_chemicals:
+    label: Solvents & bulk lab chemicals
+  analytical_reagents_standards:
+    label: Analytical reagents & standards
+  biology_catalogue:
+    label: Biology catalogue
+  lab_consumables:
+    label: Lab consumables
+
+excluded_categories:
+  - lab water
+  - biomonitoring
+  - testing services
+  - bioprocess
+  - instruments
+  - diagnostics
+
+peers:
+  thermo_fisher:
+    label: Thermo Fisher
+  avantor:
+    label: Avantor
+
+methods:
+  A: supply side (restated peer revenue + others)
+  B: demand side (R&D spend x consumables intensity)
+
+publish_tolerance: 0.15   # publish a cell only if |A - B| / mean(A, B) <= 15%, else show a range
+
+grades:
+  A: disclosed
+  B: triangulated from 2+ sources
+  C: estimate (always shown as a range)

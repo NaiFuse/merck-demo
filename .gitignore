@@ -4,15 +4,20 @@
 !.env.example
 
 # Raw data (keep folder structure only)
-merck-ds-demo/data/raw/**
-!merck-ds-demo/data/raw/**/
-!merck-ds-demo/data/raw/**/.gitkeep
+data/raw/**
+!data/raw/**/
+!data/raw/**/.gitkeep
+
+# Database
+data/*.duckdb
+data/*.duckdb.wal
 
 # Python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
+.pytest_cache/
 .ipynb_checkpoints/
 
 # OS / editor
