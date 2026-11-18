@@ -204,6 +204,15 @@ def germany_share_of_dach(p: Panel, rb_cfg: dict) -> tuple:
     return _assumption("germany_share_of_dach", "DE", ind, rb_cfg["base_indicator"], "Germany share of DACH"), ind
 
 
+def germany_share_of_clusters(p: Panel, rb_cfg: dict) -> tuple:
+    """Germany's share of the three demo clusters (scales the German register floor to the cluster total)."""
+    tax = load_taxonomy()
+    allc = [c for v in tax["clusters"].values() for c in v["countries"]]
+    ind = group_shares(p, rb_cfg["indicators"], {"DE": ["DE"]}, allc)
+    return _assumption("germany_share_of_clusters", "DE", ind, rb_cfg["base_indicator"],
+                       "Germany share of the three demo clusters"), ind
+
+
 def apply_to_market(market, facts: list[FactRow], online_fx: bool = False):
     """Market with derived cluster shares (and Germany share of DACH) when market.yaml asks for it."""
     from src.connectors.eurostat import load_config
@@ -215,6 +224,7 @@ def apply_to_market(market, facts: list[FactRow], online_fx: bool = False):
     anchor = dict(market.dach_anchor)
     if anchor:   # the DACH register cross-check scales the DACH estimate by Germany's share
         anchor["germany_share_of_dach"], _ = germany_share_of_dach(p, market.research_base)
+        anchor["germany_share_of_clusters"], _ = germany_share_of_clusters(p, market.research_base)
     return market.model_copy(update={"clusters": shares, "dach_anchor": anchor})
 
 

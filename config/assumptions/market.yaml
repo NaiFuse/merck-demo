@@ -35,6 +35,14 @@ dach_anchor:
   vwr_lab_consumables_share:
     {key: vwr_gmbh_consumables_in_labtech, low: 0.45, base: 0.55, high: 0.65, grade: C,
      source: "estimate: consumables share of 'Labortechnik und Sonstiges' (lab equipment + consumables + other)"}
+  carl_roth_academic_share:
+    {key: carl_roth_academic_share, low: 0.30, base: 0.40, high: 0.50, grade: C,
+     source: "estimate: Carl Roth sells lab chemicals and consumables to universities, research institutes, schools,
+       hospitals, industry and pharma; no customer split disclosed"}
+  carl_roth_ds_share:
+    {key: carl_roth_ds_category_share, low: 0.80, base: 0.88, high: 0.95, grade: C,
+     source: "estimate: share of Carl Roth revenue in DS-type categories (chemicals, biochemicals, lab consumables);
+       rest = small lab equipment, safety items"}
   vwr_academic_share:
     {key: vwr_gmbh_academic_share, low: 0.12, base: 0.17, high: 0.22, grade: C,
      source: "Avantor Europe E&G 10% + part of Healthcare 10% (FY2023, disclosed), concentrated in the lab channel"}
@@ -75,6 +83,9 @@ demand:
 #   A = (TMO + Avantor) / (1 - others_share)
 supply:
   year: 2025
+  # others_share below is the PRIOR estimate. With others_share_from: tenders it is replaced at run time by the
+  # TED + UK FTS win shares (src/models/others_share.py, grade B) and kept as others_share_prior for comparison.
+  others_share_from: tenders
   others_share:
     {key: others_share, low: 0.55, base: 0.65, high: 0.75, grade: C,
      source: "estimate: share of the DS-type academia market not sold by Thermo Fisher or Avantor – Merck's own direct
@@ -83,3 +94,15 @@ supply:
 
 # Reconciliation per cluster and year: publish only if |A - B| / mean(A, B) <= taxonomy publish_tolerance (15%),
 # compared on the P50s; otherwise the cell is a range (min P10 .. max P90), grade C.
+
+# ---------------------------------------------------------------- gap reconciliation (src/models/reconciliation.py)
+# Checks next to A and B: the Merck market anchor (CMD 2025 Discovery market, scaled down, grade C) and the German
+# bottom-up floor (register filings: Fisher Scientific GmbH + VWR International GmbH + Carl Roth, a lower bound,
+# scaled to the cluster by Germany's share of academic research). If A and B fail the 15% rule, the published
+# grade-C range is the overlap [max of lower bounds, min of upper bounds] of A, B, anchor and floor (P10/P90).
+reconciliation:
+  register_floor_year: FY2025      # Carl Roth: latest filed year is used (FY2024), noted in the output
+  carl_roth_period: FY2024
+  # Implied DS share outside this band is flagged 'check' (heuristic, not a constraint). The hard check is
+  # consistency: DS Academia revenue cannot exceed the market minus the two peers (plus the Merck product they resell).
+  ds_share_plausible: [0.05, 0.30]

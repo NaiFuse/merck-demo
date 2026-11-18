@@ -137,18 +137,31 @@ def base_facts() -> list[FactRow]:
     facts, problems = edgar.load_all(online=False)
     if problems:
         raise RuntimeError("EDGAR cross-check failed: " + "; ".join(problems))
+    from src.extract import manual_facts
+
     accepted, _ = pdf.verify_all_cached()
-    return facts + accepted + research_base.load_facts(online=False)
+    manual, problems = manual_facts.load_all()
+    if problems:
+        raise RuntimeError("manual facts failed verification: " + "; ".join(problems))
+    return facts + accepted + manual + research_base.load_facts(online=False)
 
 
 def build_all() -> tuple[list[FactRow], list[AssumptionRow], list[dict]]:
     """Every row from caches + config (offline): facts, assumptions, market cells."""
-    from src.models import market_model
+    from src.models import market_model, merck_ds
+    from src.models.peer_restatement import check_source_quotes
 
     facts = base_facts()
     peers, model = market_model.build(facts)
     facts += peers.fact_rows() + model.fact_rows()
-    return facts, peers.assumption_rows() + model.assumption_rows(), model.cell_rows()
+    merck = merck_ds.load_config().assumptions()
+    problems = check_source_quotes(merck)
+    if problems:
+        raise ValueError("Merck DS quotes failed verification: " + "; ".join(problems))
+    merck_rows = [AssumptionRow(f"merck_ds.{a.key}", a.low, a.base, a.high,
+                                a.source + (f" [{a.source_file} p.{a.page}: \"{a.quote}\"]" if a.source_file else ""),
+                                a.grade, a.note) for a in merck]
+    return facts, peers.assumption_rows() + model.assumption_rows() + merck_rows, model.cell_rows()
 
 
 def main(argv: list[str] | None = None) -> None:

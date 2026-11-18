@@ -1,0 +1,101 @@
+# Merck Discovery Solutions (DS) – outside-in estimate from public data (src/models/merck_ds.py, share_bridge.py).
+# Unofficial: Merck does not disclose DS revenue by region or customer segment. Everything below the 'disclosed'
+# block is an estimate (grade C, always a range) and can be moved with the dashboard sliders.
+# Disclosed inputs carry a verbatim quote checked against the stated PDF page (rule 1).
+
+entity: merck_ds
+label: Merck DS
+period: FY2025
+
+disclosed:
+  ds_revenue_fy2024:
+    {key: ds_revenue_fy2024, low: 2900, base: 2900, high: 2900, grade: A, unit: EUR_m,
+     source: "Merck Capital Markets Day 2025, group presentation p.13: Discovery Solutions ~EUR 2.9bn (FY-24 actuals)",
+     quote: "Discovery Solutions ~€2.9 bn1", source_file: data/raw/merck/de_merck-kgaa_2025_cmd-group-presentation.pdf, page: 13,
+     note: "Rounded ('~'); new business-unit set-up as of 1 Jan 2026, numbers based on FY-24 actuals."}
+  ds_sales_q3_2026:
+    {key: ds_sales_q3_2026, low: 722, base: 722, high: 722, grade: A, unit: EUR_m,
+     source: "Merck Q3 2026 press release p.8, Life Science net sales by business unit",
+     quote: "Discovery Solutions 722 30% 1.7% 1.3% –% 3.0% 701 31%",
+     source_file: data/raw/merck/de_merck-kgaa_2026q3_press-release.pdf, page: 8}
+  ds_sales_q3_2025:
+    {key: ds_sales_q3_2025, low: 701, base: 701, high: 701, grade: A, unit: EUR_m,
+     source: "Merck Q3 2026 press release p.8 (prior year restated to the three new business units)",
+     quote: "Discovery Solutions 722 30% 1.7% 1.3% –% 3.0% 701 31%",
+     source_file: data/raw/merck/de_merck-kgaa_2026q3_press-release.pdf, page: 8}
+  ds_organic_growth_q3_2026:
+    {key: ds_organic_growth_q3_2026, low: 0.017, base: 0.017, high: 0.017, grade: A,
+     source: "Merck Q3 2026 press release p.8: DS organic growth Q3 2026 vs Q3 2025 (global)",
+     quote: "Discovery Solutions 722 30% 1.7% 1.3% –% 3.0% 701 31%", quote_value: 1.7,
+     source_file: data/raw/merck/de_merck-kgaa_2026q3_press-release.pdf, page: 8}
+  group_europe_share_q3_2026:
+    {key: group_europe_share_q3_2026, low: 0.291, base: 0.291, high: 0.291, grade: A,
+     source: "Merck Q3 2026 press release p.2: Europe share of Group net sales (all three business sectors)",
+     quote: "Europe remained the second -largest market with a share of 29.1%", quote_value: 29.1,
+     source_file: data/raw/merck/de_merck-kgaa_2026q3_press-release.pdf, page: 2}
+
+# DS EMEA revenue (all customers, EUR m) = DS revenue FY2025 x DS Europe share. Dashboard slider moves the base.
+estimate:
+  ds_revenue_fy2025:
+    {key: ds_revenue_fy2025, low: 2800, base: 2900, high: 3000, grade: C, unit: EUR_m,
+     source: "estimate: ~EUR 2.9bn FY2024 (disclosed, rounded) carried to FY2025; Q3 2025 restated 701 x 4 = 2.8bn;
+       DS organic growth low single digit (Q3 2026 +1.7%)"}
+  ds_europe_share:
+    {key: ds_europe_share, low: 0.28, base: 0.33, high: 0.38, grade: C,
+     source: "estimate: Group Europe share 29.1% (Q3 2026, disclosed, all sectors); the DS catalogue business (Sigma-Aldrich
+       heritage, Darmstadt) is assumed more Europe-weighted than Process Solutions or Electronics (Asia-Pacific largest)",
+     note: "Europe used as the EMEA proxy (Middle East & Africa left out, as in the peer restatement)."}
+  ds_academia_share:
+    {key: ds_academia_share, low: 0.30, base: 0.38, high: 0.45, grade: C,
+     source: "estimate: Academia share of DS EMEA revenue. CMD 2025 Life Science p.6 shows DS customer mix only as
+       'illustrative' (Pharma/Biotech/CDMOs, Academia incl. government, hospitals, physicians, Industrial & Testing);
+       no share disclosed. Catalogue chemistry/biology skews to research labs."}
+
+# Share bridge (CLAUDE.md): g_DS - g_M = sum_s (w_s - v_s) g_s [mix] + sum_s w_s (g_DS_s - g_s) [share]
+# Without DS growth by segment (phase 2), the share term is the residual: share = (g_DS - g_M) - mix.
+# Period: DS Q3 2026 vs Q3 2025 organic; market growth = latest-year nominal growth (method B nowcast for Academia).
+bridge:
+  segments:
+    academia: {label: Academia}
+    pharma_biotech: {label: Pharma & Biotech}
+    industrial_testing: {label: Industrial & Testing}
+  ds_growth:
+    {key: ds_emea_organic_growth, low: 0.005, base: 0.017, high: 0.030, grade: C,
+     source: "estimate: DS organic growth Q3 2026 +1.7% (global, disclosed) used as the EMEA proxy, +-1.2pp for regional
+       deviation (the release names Asia-Pacific as the positive region)"}
+  ds_pharma_of_rest:
+    {key: ds_pharma_share_of_non_academia, low: 0.55, base: 0.65, high: 0.75, grade: C,
+     source: "estimate: Pharma & Biotech share of DS EMEA revenue outside Academia (rest = Industrial & Testing)"}
+  market_academia_weight:
+    {key: market_w_academia, low: 0.22, base: 0.28, high: 0.34, grade: C,
+     source: "estimate: Academia share of the EMEA DS-type research catalogue market (all customer segments)"}
+  market_pharma_of_rest:
+    {key: market_pharma_share_of_non_academia, low: 0.55, base: 0.65, high: 0.75, grade: C,
+     source: "estimate: Pharma & Biotech share of the non-Academia DS-type market"}
+  market_growth:
+    academia: derived:market_model   # method B total, latest year over prior year (per Monte Carlo draw)
+    pharma_biotech:
+      {key: market_growth_pharma_biotech, low: 0.02, base: 0.04, high: 0.06, grade: C,
+       source: "estimate: Merck CMD 2025 group p.14 names weak early-stage biotech funding; DS-type pharma demand assumed
+         low-to-mid single digit"}
+    industrial_testing:
+      {key: market_growth_industrial_testing, low: 0.01, base: 0.025, high: 0.04, grade: C,
+       source: "estimate: industrial & testing lab demand roughly in line with nominal GDP"}
+
+# Merck market anchor (4th check next to A, B and the German floor): Merck's own Discovery addressable market
+# (CMD 2025 group p.14: ~EUR 80bn, 2025, global; fact in config/manual_facts.yaml) scaled to the three clusters:
+#   anchor = 80bn x Europe share (triangulated) x cluster share (research base) x Academia weight (bridge input
+#            market_w_academia) x scope overlap
+anchor:
+  market_fact: {entity: merck_kgaa, period: FY2025, metric: addressable_market_size}
+  # Europe share of the global market: min / median / max of disclosed Europe revenue shares (Thermo Fisher FY2025,
+  # Avantor FY2023 geo segments, Merck Group Q3 2026) – derived at run time, grade B.
+  scope_overlap:
+    {key: anchor_scope_overlap, low: 0.75, base: 0.90, high: 1.0, grade: C,
+     source: "estimate: share of Merck's 'relevant addressable market segments for Discovery Solutions' that falls in the
+       DS-equivalent categories of this demo (chemistry and biology catalogue, solvents, analytical reagents, lab
+       consumables); lab water and biomonitoring already sit in Advanced Solutions"}
+  market_cagr:
+    {key: discovery_market_cagr, low: 0.01, base: 0.02, high: 0.03, grade: C,
+     source: "Merck CMD 2025 group p.14: Discovery market CAGR mid-term '~LSD' (LSD = Low-Single-Digit), global;
+       translated to 1-3%"}

@@ -1,0 +1,30 @@
+# Facts read from a rendered page image because the PDF text layer scrambles the table (labels, sizes and growth
+# rates come out as separate runs, in different orders). src/extract/manual_facts.py verifies every fact (rule 1):
+#   - each fragment in `quotes` is verbatim on `page` of `file` (normalised pypdf text, as for the LLM extraction);
+#   - `value_fragment` is part of one of those quotes and contains `value` in `unit`;
+#   - `label` is on the page.
+# The label <-> value pairing is what the image shows; `pairing` records how it was read.
+
+facts:
+  - entity: merck_kgaa
+    period: FY2025
+    metric: addressable_market_size
+    value: 80
+    unit: EUR_bn
+    region: Global
+    segment: Discovery Solutions (relevant addressable market segments)
+    grade: A
+    file: data/raw/merck/de_merck-kgaa_2025_cmd-group-presentation.pdf
+    page: 14
+    label: "Discovery3"
+    value_fragment: "~€80 bn"
+    quotes:
+      - "Process Products Discovery3 Advanced4"
+      - "~€35 bn ~€80 bn ~€105 bn ~€220 bn"
+      - "Company estimate for addressable markets in 2025"
+      - "Relevant addressable market segments for Discovery Solutions"
+    pairing: >-
+      Read from the slide rendered with pdftoppm (110 dpi): table 'Market | Market Size | Market CAGR mid-term', row
+      'Discovery(3) ~€80 bn ~LSD'. Other rows: Process Products ~€35 bn ~9 to 10%; Advanced ~€105 bn ~MSD;
+      Total Market ~€220 bn ~4 to 6%. Footnote 2: company estimate for addressable markets in 2025; footnote 3:
+      relevant addressable market segments for Discovery Solutions (global, all customer groups).

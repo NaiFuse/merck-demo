@@ -25,6 +25,9 @@ def test_readonly_on_missing_db_raises_clear_error(tmp_path):
 def test_app_does_not_open_writable_connection():
     from pathlib import Path
 
-    src = Path(__file__).resolve().parents[1].joinpath("src/app/main.py").read_text()
-    assert "connect_readonly" in src
-    assert "init_db" not in src and "connect(" not in src.replace("connect_readonly(", "")
+    app = Path(__file__).resolve().parents[1] / "src" / "app"
+    files = sorted(app.rglob("*.py"))
+    assert any("connect_readonly" in f.read_text() for f in files)
+    for f in files:
+        src = f.read_text()
+        assert "init_db" not in src and "connect(" not in src.replace("connect_readonly(", ""), f.name

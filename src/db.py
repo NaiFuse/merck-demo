@@ -113,7 +113,8 @@ TENDERS_EXTRA_COLUMNS = {
     "source": "VARCHAR",           # 'ted' | 'uk_fts'
 }
 MARKET_CELLS_EXTRA_COLUMNS = {
-    "status": "VARCHAR",           # 'estimate' (A/B rows) | 'published' (A, B within 15%) | 'range' (no point value)
+    "status": "VARCHAR",           # 'estimate' (A/B) | 'check' (anchor/floor) | 'published' (A, B within 15%) |
+                                   # 'range' (overlap of all) | 'range_partial' (overlap of the largest consistent subset)
     "gap_pct": "DOUBLE",           # |A50 - B50| / mean(A50, B50) on reconciled rows
     "note": "VARCHAR",
     "computed_at": "TIMESTAMP",

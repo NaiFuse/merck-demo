@@ -178,13 +178,17 @@ class MarketCell:
     base: float | None
     high: float | None
     grade: str
-    status: str                    # 'estimate' (A/B rows) | 'published' | 'range'
+    status: str                    # 'estimate' | 'check' | 'published' | 'range' | 'range_partial'
     gap_pct: float | None = None   # |A50 - B50| / mean(A50, B50), reconciled rows only
     note: str = ""
+    members: list = field(default_factory=list)     # reconciled range: methods/checks whose ranges overlap
+    excluded: dict = field(default_factory=dict)    # method -> distance to the range, EUR m (+ above, - below)
 
 
-def reconcile(a: SupplyCell, b: DemandCell, tolerance: float) -> MarketCell:
-    """Published cells are grade B (two independent methods agree), or A if both inputs were A already."""
+def reconcile(a: SupplyCell, b: DemandCell, tolerance: float, checks: list | None = None) -> MarketCell:
+    """Published cells are grade B (two independent methods agree), or A if both inputs were A already.
+    Otherwise grade C: the overlap of A, B and the independent checks (reconciliation.Check: P10/P90, lower-only
+    checks contribute their P10); if they do not overlap, the gap between the closest bounds (flagged)."""
     a50, b50 = a.pct[1], b.pct[1]
     gap = abs(a50 - b50) / ((a50 + b50) / 2)
     if gap <= tolerance:
@@ -192,9 +196,43 @@ def reconcile(a: SupplyCell, b: DemandCell, tolerance: float) -> MarketCell:
         grade = "A" if a.grade == b.grade == "A" else "B"
         return MarketCell(a.cluster, a.year, "reconciled", lo, mid, hi, grade, "published", gap,
                           f"A and B agree within {tolerance:.0%} (gap {gap:.1%}); pooled A+B draws P10/P50/P90")
-    lo, hi = min(a.pct[0], b.pct[0]), max(a.pct[2], b.pct[2])
-    return MarketCell(a.cluster, a.year, "reconciled", lo, None, hi, "C", "range", gap,
-                      f"A {a50:,.0f} vs B {b50:,.0f} EUR m: gap {gap:.0%} > {tolerance:.0%} – range min P10 .. max P90")
+    head = f"A {a50:,.0f} vs B {b50:,.0f} EUR m: gap {gap:.0%} > {tolerance:.0%}"
+    if not checks:
+        lo, hi = min(a.pct[0], b.pct[0]), max(a.pct[2], b.pct[2])
+        return MarketCell(a.cluster, a.year, "reconciled", lo, None, hi, "C", "range", gap,
+                          f"{head} – range min P10 .. max P90")
+    iv = {"A": (a.pct[0], a.pct[2]), "B": (b.pct[0], b.pct[2])}
+    for c in checks:
+        q = c.pct
+        iv[c.method] = (q[0], float("inf") if c.lower_only else q[2])
+    sub, lo, hi = largest_overlap(iv)
+    excluded = {m: (iv[m][0] - hi if iv[m][0] > hi else iv[m][1] - lo) for m in iv if m not in sub}
+    parts = [f"{head} – overlap of {', '.join(sub)}"]
+    for m, d in excluded.items():
+        parts.append(f"{m} excluded: its P10 {iv[m][0]:,.0f} is {d:,.0f} above the overlap" if d > 0
+                     else f"{m} excluded: its P90 {iv[m][1]:,.0f} is {-d:,.0f} below the overlap")
+    return MarketCell(a.cluster, a.year, "reconciled", lo, None, hi, "C", "range_partial" if excluded else "range",
+                      gap, "; ".join(parts), list(sub), excluded)
+
+
+def largest_overlap(iv: dict[str, tuple[float, float]]) -> tuple[list[str], float, float]:
+    """Largest subset of intervals with a common overlap; ties -> more of the primary methods A, B, then narrowest.
+    Returns (members, low, high). A and B always overlap with themselves, so a subset of size >= 1 exists."""
+    from itertools import combinations
+
+    names = list(iv)
+    best = None
+    for r in range(len(names), 0, -1):
+        for sub in combinations(names, r):
+            lo = max(iv[m][0] for m in sub)
+            hi = min(iv[m][1] for m in sub)
+            if lo < hi and hi != float("inf"):
+                key = (r, len({"A", "B"} & set(sub)), -(hi - lo))   # primary methods before checks
+                if best is None or key > best[0]:
+                    best = (key, list(sub), lo, hi)
+        if best is not None:
+            break
+    return best[1], best[2], best[3]
 
 
 @dataclass
@@ -204,6 +242,7 @@ class ModelResult:
     cells: list[MarketCell]
     market: Market
     tolerance: float
+    checks: dict = field(default_factory=dict)      # cluster -> [reconciliation.Check]
 
     def cell_rows(self) -> list[dict]:
         now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -219,6 +258,10 @@ class ModelResult:
         for x in items:
             a = _a(x)
             out.append(AssumptionRow(f"market_model.{a.key}", a.low, a.base, a.high, a.source, a.grade, a.note))
+        if s.get("others_share_prior"):
+            a = _a(s["others_share_prior"])
+            out.append(AssumptionRow("market_model.others_share_prior", a.low, a.base, a.high,
+                                     "prior estimate, replaced by tender win shares – " + a.source, a.grade, a.note))
         for c in self.demand:
             if c.cluster != TOTAL and c.year == d["years"][1]:
                 out.append(AssumptionRow(
@@ -244,7 +287,7 @@ def _r(x: float | None) -> float | None:
     return None if x is None else round(x, 1)
 
 
-def run(peers: RunResult, panel: Panel) -> ModelResult:
+def run(peers: RunResult, panel: Panel, checks: dict | None = None) -> ModelResult:
     market = peers.market
     mc = market.monte_carlo
     n, seed = int(mc["draws"]), int(mc["seed"])
@@ -259,18 +302,25 @@ def run(peers: RunResult, panel: Panel) -> ModelResult:
     for a in supply:
         cells.append(MarketCell(a.cluster, a.year, "A", *a.pct, a.grade, "estimate",
                                 note="peers P50: " + ", ".join(f"{k} {v[1]:,.0f}" for k, v in a.peers.items())))
+        for c in (checks or {}).get(a.cluster, []):
+            q = c.pct
+            cells.append(MarketCell(a.cluster, a.year, c.method, q[0], q[1], q[2], c.grade, "check", note=c.note))
         if (a.cluster, a.year) in by_b:
-            cells.append(reconcile(a, by_b[(a.cluster, a.year)], tol))
-    return ModelResult(demand, supply, cells, market, tol)
+            cells.append(reconcile(a, by_b[(a.cluster, a.year)], tol, (checks or {}).get(a.cluster)))
+    return ModelResult(demand, supply, cells, market, tol, checks or {})
 
 
 def build(facts: list[FactRow], online_fx: bool = False) -> tuple[RunResult, ModelResult]:
     """facts = EDGAR + PDF + research-base facts. Returns (peer restatement, market model)."""
     from src.models import peer_restatement, research_base
 
+    from src.models import merck_ds, reconciliation
+
     peers = peer_restatement.run_all(facts, online_fx=online_fx)
     panel = research_base.build_panel(facts, online_fx)
-    return peers, run(peers, panel)
+    mc = peers.market.monte_carlo
+    checks, _ = reconciliation.checks(peers, facts, merck_ds.load_config(), int(mc["draws"]), int(mc["seed"]))
+    return peers, run(peers, panel, checks)
 
 
 # ---------------------------------------------------------------- CLI

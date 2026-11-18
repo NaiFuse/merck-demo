@@ -66,7 +66,9 @@ class Assumption(BaseModel):
             raise ValueError(f"{self.key}: grade C must be a range (low < high)")
         if self.quote:
             v = self.quote_value if self.quote_value is not None else self.base
-            if not quote_contains_value(self.quote, v, "%" if (self.unit == "%" or self.quote_value is not None) else ""):
+            # money units (e.g. EUR_m) are checked in that unit, so '~€2.9 bn' matches 2,900 EUR_m
+            unit = "%" if (self.unit == "%" or self.quote_value is not None) else (self.unit if "_" in self.unit else "")
+            if not quote_contains_value(self.quote, v, unit):
                 raise ValueError(f"{self.key}: quote does not contain {v}")
         return self
 
@@ -153,6 +155,7 @@ class Market(BaseModel):
     research_base: dict = {}
     demand: dict = {}                          # method B inputs (src/models/market_model.py)
     supply: dict = {}                          # method A inputs
+    reconciliation: dict = {}                  # gap reconciliation settings (src/models/reconciliation.py)
 
 
 def load_peer(peer: str, directory: Path = ASSUMPTIONS_DIR) -> PeerConfig:
@@ -429,6 +432,7 @@ class AnchorCheck:
     rule: str
     plausible: bool
     verdict: str
+    anchor_draws: np.ndarray | None = field(default=None, repr=False)   # Germany anchor, EUR m (Monte Carlo)
 
 
 def _fact(rows: list[FactRow], entity: str, period: str, segment: str | None, metric: str = "revenue") -> FactRow:
@@ -478,7 +482,7 @@ def dach_crosscheck(results: list[Restatement], facts: list[FactRow], market: Ma
             "lower bound: estimate (DE-equivalent) P90 must be >= anchor P10", bool(ok),
             (f"plausible: estimate {ratio:.1f}x the channel-only lower bound, i.e. it implies TMO's direct businesses "
              f"sell ~{ratio - 1:.1f}x its German channel to DS-type academia" + (" – CHECK, high" if ratio > 3 else ""))
-            if ok else "IMPLAUSIBLE: estimate below TMO's German channel alone"))
+            if ok else "IMPLAUSIBLE: estimate below TMO's German channel alone", anchor))
     if "avantor" in by_peer:
         e = "vwr_international_gmbh"
         chem, labtech = _eur_m(_fact(facts, e, period, "Chemikalien")), _eur_m(_fact(facts, e, period, "Labortechnik und Sonstiges"))
@@ -500,7 +504,7 @@ def dach_crosscheck(results: list[Restatement], facts: list[FactRow], market: Ma
              "Germany only (VWR GmbH also books ~33% foreign sales, removed via Deutschland/total)",
              "academia share is not disclosed for VWR GmbH; anchor uses Avantor's Europe end-market mix"],
             "two-sided: estimate (DE-equivalent) P10-P90 must overlap the anchor P10-P90", bool(ok),
-            "plausible (ranges overlap)" if ok else "IMPLAUSIBLE: estimate and anchor ranges do not overlap"))
+            "plausible (ranges overlap)" if ok else "IMPLAUSIBLE: estimate and anchor ranges do not overlap", anchor))
     return out
 
 
@@ -548,7 +552,9 @@ def run_all(facts: list[FactRow], online_fx: bool = False, peers: list[str] = PE
     """facts must include the research-base facts when market.yaml derives cluster shares from them."""
     from src.models import research_base
 
-    market = research_base.apply_to_market(load_market(), facts, online_fx)
+    from src.models import others_share
+
+    market = others_share.apply_to_market(research_base.apply_to_market(load_market(), facts, online_fx))
     if not market.clusters:
         raise ValueError("market.yaml has no cluster shares (set cluster_shares_from: research_base or list clusters)")
     configs = [load_peer(p) for p in peers]
