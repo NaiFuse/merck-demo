@@ -4,7 +4,7 @@
 
 `load` rebuilds every row from the offline caches (EDGAR cache, PDF extraction cache, assumption YAMLs) and the
 peer restatement, then writes them in one short transaction. No network or LLM calls happen here.
-Idempotent: a document's facts are replaced as a whole; assumptions are replaced by key.
+Idempotent: a document's facts are replaced as a whole; assumptions are replaced per owner prefix.
 Never touches the tenders / tender_awards tables.
 """
 
@@ -90,7 +90,9 @@ def save(facts: list[FactRow], assumptions: list[AssumptionRow] = (), db_path: P
                 [[doc_ids[(r.source, r.url_or_path)], r.entity, r.period, r.metric, r.value, r.unit, r.region,
                   r.segment, r.quote, r.grade] for r in facts])
             if assumptions:
-                con.executemany("DELETE FROM assumptions WHERE key = ?", [[a.key] for a in assumptions])
+                # replace everything under each owner prefix ('thermo_fisher.', 'market.', ...) so retired keys go too
+                prefixes = sorted({a.key.split(".", 1)[0] + "." for a in assumptions})
+                con.executemany("DELETE FROM assumptions WHERE starts_with(key, ?)", [[p] for p in prefixes])
                 con.executemany(
                     "INSERT INTO assumptions (key, value_low, value_base, value_high, source, grade, note) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?)",

@@ -68,9 +68,12 @@ bioprocess, instruments, diagnostics.
 2. x Europe share = disclosed Europe revenue / total, x mix factor (Avantor: FY2023 geo segments, last disclosed)
 3. x Business scope share = (in-scope sub-segment revenue x weight - intra-group double counting) / total
 4. x DS-equivalent product share; 4b: "of which resold Merck" shown separately (channel resale is kept, not dropped)
-5. x Academia share
+5. x Academia share = disclosed end-market share (TMO A&G, Avantor Europe E&G) x concentration x EMEA factor
+   + hospital add-on (Merck counts hospitals as Academia)
 6. x cluster share, USD->EUR at the FY average of ECB monthly rates
-Ranges are bounding (low = product of lows). Output grade = worst input grade.
+Monte Carlo (10,000 triangular draws, config/assumptions/market.yaml): P10-P90 is the default display, min/max
+(bounding) shown next to it; sensitivity = one-at-a-time swing + variance share. DACH sanity check against
+Fisher Scientific GmbH / VWR International GmbH register filings. Output grade = worst input grade.
 
 ## Share bridge
 g_DS - g_M = sum_s (w_s - v_s) * g_s  [mix]  +  sum_s w_s * (g_DS_s - g_s)  [share]

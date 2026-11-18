@@ -136,7 +136,91 @@ def test_fx_average_from_cache(tmp_path):
 def test_real_configs_load(peer):
     c = pr.load_peer(peer)
     assert c.peer == peer and c.period == "FY2025"
-    assert all(x.grade == "C" for x in (c.ds_share, c.academia_share, c.merck_resale_share))
+    assert c.academia is not None and c.academia.eg_share.grade == "A"          # disclosed end-market share
+    assert c.academia.eg_share.quote and c.academia.eg_share.source_file and c.academia.eg_share.page
+    assert all(x.grade == "C" for x in (c.ds_share, c.merck_resale_share, c.academia.concentration))
     m = pr.load_market()
     assert set(m.clusters) == {"dach", "france_benelux", "uk_ireland_nordics"}
     assert sum(x.base for x in m.clusters.values()) < 1.0
+
+
+
+def _composite_cfg():
+    d = cfg().model_dump()
+    d.pop("academia_share")
+    d["academia"] = {"eg_share": a("eg", 0.10, 0.10, 0.10, "A", quote="Education & government (10%)", quote_value=10),
+                     "concentration": a("conc", 1.2, 1.5, 1.8), "emea_factor": a("emea", 0.9, 1.0, 1.1),
+                     "hospital_addon": a("hosp", 0.02, 0.05, 0.08)}
+    return pr.PeerConfig.model_validate(d)
+
+
+def test_composite_academia_share():
+    r = pr.restate(_composite_cfg(), FACTS, MARKET, fx_rate=1.0)
+    lo, base, hi = r.steps[4].factor
+    assert base == pytest.approx(0.10 * 1.5 * 1.0 + 0.05)
+    assert lo == pytest.approx(0.10 * 1.2 * 0.9 + 0.02) and hi == pytest.approx(0.10 * 1.8 * 1.1 + 0.08)
+    assert r.steps[4].grade == "C"
+
+
+def test_exactly_one_academia_definition():
+    d = _composite_cfg().model_dump()
+    d["academia_share"] = a("acad", 0.2, 0.25, 0.3)
+    with pytest.raises(ValidationError):
+        pr.PeerConfig.model_validate(d)
+
+
+def test_monte_carlo_percentiles_inside_bounds_and_reproducible():
+    r1 = pr.restate(_composite_cfg(), FACTS, MARKET, fx_rate=1.0, n_draws=5000, seed=7)
+    r2 = pr.restate(_composite_cfg(), FACTS, MARKET, fx_rate=1.0, n_draws=5000, seed=7)
+    p10, p50, p90 = r1.mc["total"]
+    lo, base, hi = r1.total
+    assert lo <= p10 <= p50 <= p90 <= hi
+    assert (p90 - p10) < (hi - lo) * 0.7          # the point of the exercise: narrower than min-max
+    assert r1.mc == r2.mc
+    assert r1.mc["merck_total"][1] < p50
+
+
+def test_triangular_constant_when_disclosed():
+    import numpy as np
+    x = pr.triangular(pr.Assumption.model_validate(a("k", 0.14, 0.14, 0.14, "A")), 10, np.random.default_rng(0))
+    assert (x == 0.14).all()
+
+
+def test_sensitivity_ranks_widest_input_first():
+    d = _composite_cfg().model_dump()
+    d["ds_share"] = a("ds", 0.1, 0.5, 0.9)          # very wide -> must dominate
+    r = pr.restate(pr.PeerConfig.model_validate(d), FACTS, MARKET, fx_rate=1.0, n_draws=4000, seed=1)
+    assert r.sensitivity[0].key == "peer_x.ds"
+    assert r.sensitivity[0].swing > 0 and 0 < r.sensitivity[0].var_share <= 1
+    assert all(s.key != "peer_x.eg" for s in r.sensitivity)   # constant (disclosed) inputs have no swing
+
+
+def test_check_source_quotes(tmp_path):
+    from tests.test_pdf_extract import make_pdf
+    pdf_path = make_pdf(tmp_path / "us_x_2025_annual-report.pdf", ["Cover", "Academic and Government 14 percent"])
+    good = pr.Assumption.model_validate(a("ag", 0.14, 0.14, 0.14, "A", quote="Academic and Government 14 percent",
+                                          quote_value=14, source_file=pdf_path.name, page=2))
+    bad_page = good.model_copy(update={"page": 1})
+    assert pr.check_source_quotes([good], tmp_path) == []
+    assert "not on page 1" in pr.check_source_quotes([bad_page], tmp_path)[0]
+
+
+def test_dach_crosscheck_flags_implausible_estimates():
+    import numpy as np
+    from src.facts_store import FactRow
+
+    def f(entity, segment, value, unit="EUR_k"):
+        return FactRow("manual_pdf", "x.pdf", TS, entity, "FY2025", "revenue", value, unit, None, segment, "q", "A")
+    facts = [f("vwr_international_gmbh", "Chemikalien", 142_598), f("vwr_international_gmbh", "Labortechnik und Sonstiges", 416_692),
+             f("vwr_international_gmbh", None, 559_290), f("vwr_international_gmbh", "Deutschland", 376_328)]
+    market = pr.Market.model_validate({"clusters": {"dach": a("c", 0.3, 0.35, 0.4)}, "fx": {},
+        "dach_anchor": {"germany_share_of_dach": a("g", 0.72, 0.77, 0.82), "fisher_academic_share": a("f", 0.2, 0.3, 0.4),
+                        "vwr_lab_consumables_share": a("v", 0.45, 0.55, 0.65), "vwr_academic_share": a("va", 0.12, 0.17, 0.22)}})
+
+    def res(level):
+        r = pr.Restatement("avantor", "Avantor", "FY2025", [], (0, 0, 0), {}, {}, 1.0, "", "C")
+        r.mc_draws = {"dach": np.full(2000, level)}
+        return r
+    ok = pr.dach_crosscheck([res(50.0)], facts, market, seed=1)[0]
+    too_high = pr.dach_crosscheck([res(500.0)], facts, market, seed=1)[0]
+    assert ok.plausible and not too_high.plausible and "IMPLAUSIBLE" in too_high.verdict

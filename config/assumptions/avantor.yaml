@@ -33,9 +33,14 @@ scope:
   deduct: []
 
 # Step 4 – DS-equivalent product share of Laboratory Solutions (excl. equipment, instruments, services, PPE)
+# FY2023 company mix (disclosed): materials & consumables 37% + 36% = 73%, services 14%, equipment 13%.
+# Bioscience Production (32% of sales) is almost all materials & consumables, so Lab Solutions' M&C share is
+# about (73 - 32) / 68 = 60%; DS-relevant part of that M&C (excl. PPE, cleanroom, apparel) 80-95%.
 ds_share:
-  {key: ds_share, low: 0.50, base: 0.60, high: 0.70, grade: C,
-   source: "estimate: Laboratory Solutions also sells equipment/instruments, lab services and cleanroom/PPE"}
+  {key: ds_share, low: 0.48, base: 0.53, high: 0.60, grade: C,
+   source: "derived from disclosed FY2023 product mix (Avantor 2023 Annual Report p.20) x estimated DS-relevant share of M&C",
+   quote: "Proprietary materials & consumables 37% Third-party materials & consumables 36% Services & specialty procurement 14% Equipment & instrumentation 13%",
+   quote_value: 37, source_file: data/raw/peers/us_avantor_2023_annual-report.pdf, page: 20}
 
 # Step 4b – resold Merck/Sigma-Aldrich share of DS-equivalent revenue
 merck_resale_share:
@@ -43,8 +48,26 @@ merck_resale_share:
    source: "estimate: VWR carries third-party brands incl. Merck/Sigma-Aldrich",
    evidence: "millions of SKUs from the most renowned life sciences suppliers in the world"}
 
-# Step 5 – Academia share
-academia_share:
-  {key: academia_share, low: 0.15, base: 0.20, high: 0.25, grade: C,
-   source: "estimate: 'education & government' is a named end market; no % disclosed in the 10-K",
-   evidence: "biopharma & healthcare, education & government, and advanced technologies & applied materials end markets"}
+# Step 5 – Academia share (Merck counts hospitals as Academia) =
+#   disclosed Europe E&G share x concentration in Lab Solutions x drift FY2023->FY2025 + hospital add-on
+academia:
+  eg_share:
+    {key: eg_share_europe, low: 0.10, base: 0.10, high: 0.10, grade: A, unit: share,
+     source: "Avantor 2023 Annual Report p.51: Europe organic net sales by end market, FY2023 (Europe-specific)",
+     quote: "Education & government (10%) — Sales declined low single-digits driven by COVID-19 related headwinds in the government end market",
+     quote_value: 10, source_file: data/raw/peers/us_avantor_2023_annual-report.pdf, page: 51}
+  concentration:
+    {key: eg_concentration_lab_solutions, low: 1.3, base: 1.45, high: 1.5, grade: C,
+     source: "E&G is served by Laboratory Solutions (68% of FY2024 sales); if all E&G sits there, share x 1/0.68 = 1.47",
+     quote: "Laboratory Solutions 68% Bioscience Production 32%", quote_value: 68,
+     source_file: data/raw/peers/us_avantor_2024_annual-report.pdf, page: 20}
+  emea_factor:
+    {key: eg_drift_2023_2025, low: 0.8, base: 0.9, high: 1.0, grade: C,
+     source: "company E&G share fell from 13% (FY2023) to 11% (FY2024), factor 0.85; Q1 2025 release cites E&G headwinds",
+     quote: "Customer group Biopharma & healthcare 63% Education & government 11%", quote_value: 11,
+     source_file: data/raw/peers/us_avantor_2024_annual-report.pdf, page: 20}
+  hospital_addon:
+    {key: hospital_addon, low: 0.04, base: 0.07, high: 0.10, grade: C, unit: share points,
+     source: "Europe Healthcare end market 10% of FY2023 Europe sales (disclosed) x 30-70% hospital/clinical labs, concentrated in Lab Solutions",
+     quote: "Healthcare (10%) — Sales declined double-digits primarily due to reduced customer demand and destocking of lab consumables",
+     quote_value: 10, source_file: data/raw/peers/us_avantor_2023_annual-report.pdf, page: 51}

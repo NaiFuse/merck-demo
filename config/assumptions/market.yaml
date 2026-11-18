@@ -17,3 +17,26 @@ clusters:
 # USD -> EUR: average of the 12 ECB monthly reference rates of the fiscal year (grade A, src/connectors/ecb_fx.py)
 fx:
   currency: USD
+
+# Monte Carlo over all restatement inputs (triangular low / mode=base / high, independent draws)
+monte_carlo:
+  draws: 10000
+  seed: 20261118
+  display: [p10, p90]
+
+# DACH sanity anchors (step 8): the peers' German channel companies (Unternehmensregister filings, FY2025).
+# Anchor = register revenue in DS-type categories x Germany share x academia share, compared with the estimate's
+# Germany-equivalent (DACH estimate x Germany share of DACH).
+dach_anchor:
+  germany_share_of_dach:
+    {key: germany_share_of_dach, low: 0.72, base: 0.77, high: 0.82, grade: C,
+     source: "placeholder: approx. GERD weight DE / (DE+AT+CH); replace with Eurostat"}
+  fisher_academic_share:
+    {key: fisher_gmbh_academic_share, low: 0.25, base: 0.32, high: 0.40, grade: C,
+     source: "estimate: Fisher Scientific GmbH names Academic one of its two largest segments (FY2025, +16.8%)"}
+  vwr_lab_consumables_share:
+    {key: vwr_gmbh_consumables_in_labtech, low: 0.45, base: 0.55, high: 0.65, grade: C,
+     source: "estimate: consumables share of 'Labortechnik und Sonstiges' (lab equipment + consumables + other)"}
+  vwr_academic_share:
+    {key: vwr_gmbh_academic_share, low: 0.12, base: 0.17, high: 0.22, grade: C,
+     source: "Avantor Europe E&G 10% + part of Healthcare 10% (FY2023, disclosed), concentrated in the lab channel"}

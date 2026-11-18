@@ -64,3 +64,14 @@ def test_failed_batch_rolls_back(tmp_path):
         save(bad, db_path=db)
     with connect(db) as con:
         assert con.execute("SELECT count(*) FROM documents").fetchone()[0] == 1
+
+
+
+def test_retired_assumptions_are_removed(tmp_path):
+    db = tmp_path / "t.duckdb"
+    save([row()], [AssumptionRow("thermo_fisher.academia_share", 0.18, 0.24, 0.30, "old", "C"),
+                   AssumptionRow("market.x", 1, 1, 1, "m", "C")], db)
+    out = save([row()], [AssumptionRow("thermo_fisher.ag_share_company", 0.14, 0.14, 0.14, "ARS", "A")], db)
+    with connect(db) as con:
+        keys = {k for (k,) in con.execute("SELECT key FROM assumptions").fetchall()}
+    assert keys == {"thermo_fisher.ag_share_company", "market.x"}   # other owners untouched
