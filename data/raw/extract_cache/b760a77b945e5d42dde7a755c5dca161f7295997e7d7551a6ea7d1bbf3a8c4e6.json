@@ -1,0 +1,12 @@
+{
+ "file": "data/raw/registers/de_fisher-scientific-gmbh_2023_jahresabschluss.pdf",
+ "sha256": "b760a77b945e5d42dde7a755c5dca161f7295997e7d7551a6ea7d1bbf3a8c4e6",
+ "model": "claude-sonnet-5-5",
+ "prompt_version": "m3-v1",
+ "extracted_at": "2026-11-18T17:21:01+00:00",
+ "usage": {
+  "input_tokens": 66186,
+  "output_tokens": 929
+ },
+ "response_text": "{\"facts\":[{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":227464,\"unit\":\"EUR_k\",\"region\":null,\"segment\":null,\"page\":2,\"quote\":\"Umsatzerlöse 227.464 278.984 -51.520 -18,5%\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":227464283.96,\"unit\":\"EUR\",\"region\":null,\"segment\":null,\"page\":8,\"quote\":\"1. Umsatzerlöse 227.464.283,96 278.983.679,20\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":140192,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Labor Verbrauchsgüter\",\"page\":13,\"quote\":\"Labor Verbrauchsgüter 140.192 147.053\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":49514,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Labor Investitionsgüter\",\"page\":13,\"quote\":\"Labor Investitionsgüter 49.514 93.665\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":19310,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Chemikalien\",\"page\":13,\"quote\":\"Chemikalien 19.310 18.266\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":18448,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Dienstleistungen\",\"page\":13,\"quote\":\"Dienstleistungen 18.448 20.000\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":181154,\"unit\":\"EUR_k\",\"region\":\"Inland\",\"segment\":null,\"page\":13,\"quote\":\"Inland 181.154 231.383\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":46310,\"unit\":\"EUR_k\",\"region\":\"Ausland\",\"segment\":null,\"page\":13,\"quote\":\"Ausland 46.310 47.601\"},{\"metric\":\"employees\",\"period\":\"FY2023\",\"value\":240,\"unit\":\"count\",\"region\":null,\"segment\":null,\"page\":4,\"quote\":\"Zum 31. Dezember 2023 hat die Gesellschaft 240 Mitarbeiter beschäftigt und liegt damit unter dem Vorjahresniveau von 254 Mitarbeitern.\"},{\"metric\":\"employees\",\"period\":\"FY2023\",\"value\":246,\"unit\":\"count\",\"region\":null,\"segment\":\"average\",\"page\":14,\"quote\":\"Die durchschnittliche Zahl der beschäftigten Arbeitnehmer betrug im Berichtszeitraum 246 (Vorjahr 253), davon 38 Mitarbeiter im Lager, 167 Mitarbeiter im Vertrieb und 41 Mitarbeiter in der Verwaltung.\"}]}"
+}

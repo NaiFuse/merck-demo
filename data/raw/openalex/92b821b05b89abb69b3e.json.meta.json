@@ -1,0 +1,4 @@
+{
+ "url": "https://api.openalex.org/works?filter=publication_year%3A2018%2Cauthorships.institutions.type%3Aeducation%7Chealthcare%7Cgovernment%7Cfacility%7Cnonprofit%2Cprimary_topic.field.id%3A15%7C16%7C25&group_by=authorships.countries&per_page=200",
+ "retrieved_at": "2026-11-18T18:19:32.335992"
+}

@@ -1,0 +1,12 @@
+{
+ "file": "data/raw/registers/de_carl-roth-gmbh-co-kg_2024_jahresabschluss.pdf",
+ "sha256": "135ca7f414cd77c5f2c280a215a4a686cf0b0356574bf359d574da475d19ff27",
+ "model": "claude-sonnet-5-5",
+ "prompt_version": "m3-v1",
+ "extracted_at": "2026-11-18T17:20:52+00:00",
+ "usage": {
+  "input_tokens": 43048,
+  "output_tokens": 715
+ },
+ "response_text": "{\"facts\":[{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":103114540.4,\"unit\":\"EUR\",\"region\":null,\"segment\":null,\"page\":4,\"quote\":\"1. Umsatzerlöse 103.114.540,40 101.935.230,80\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":103115,\"unit\":\"EUR_k\",\"region\":null,\"segment\":null,\"page\":1,\"quote\":\"Unser Unternehmen erzielte in 2024 einen Umsatz von 103.115 TEUR (2023: 101.935 TEUR).\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":75984418.56,\"unit\":\"EUR\",\"region\":\"Inland\",\"segment\":null,\"page\":10,\"quote\":\"Inland 75.984.418,56\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":27130121.84,\"unit\":\"EUR\",\"region\":\"Ausland\",\"segment\":null,\"page\":10,\"quote\":\"Ausland 27.130.121,84\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":103114540.4,\"unit\":\"EUR\",\"region\":\"Gesamt\",\"segment\":null,\"page\":10,\"quote\":\"Gesamt 103.114.540,40\"},{\"metric\":\"employees\",\"period\":\"FY2024\",\"value\":262,\"unit\":\"count\",\"region\":null,\"segment\":null,\"page\":1,\"quote\":\"Die Mitarbeiterzahl (berechnet auf Vollzeit) zum Stichtag 31.12.2024 betrug 262 (2023: 265).\"},{\"metric\":\"employees\",\"period\":\"FY2024\",\"value\":282,\"unit\":\"count\",\"region\":null,\"segment\":\"average\",\"page\":1,\"quote\":\"Durchschnittlich waren im abgelaufenen Geschäftsjahr 282 (2023: 285) Mitarbeiter beschäftigt.\"},{\"metric\":\"employees\",\"period\":\"FY2024\",\"value\":282,\"unit\":\"count\",\"region\":null,\"segment\":\"average total\",\"page\":11,\"quote\":\"Die Gesamtzahl der durchschnittlich beschäftigten Arbeitnehmer beträgt damit 282,00\"}]}"
+}

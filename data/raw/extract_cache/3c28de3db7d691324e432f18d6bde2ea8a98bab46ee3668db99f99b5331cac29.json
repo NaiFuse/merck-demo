@@ -1,0 +1,12 @@
+{
+ "file": "data/raw/registers/de_fisher-scientific-gmbh_2025_jahresabschluss.pdf",
+ "sha256": "3c28de3db7d691324e432f18d6bde2ea8a98bab46ee3668db99f99b5331cac29",
+ "model": "claude-sonnet-5-5",
+ "prompt_version": "m3-v1",
+ "extracted_at": "2026-11-18T17:21:17+00:00",
+ "usage": {
+  "input_tokens": 69251,
+  "output_tokens": 918
+ },
+ "response_text": "{\"facts\":[{\"metric\":\"revenue\",\"period\":\"FY2025\",\"value\":254583,\"unit\":\"EUR_k\",\"region\":null,\"segment\":null,\"page\":3,\"quote\":\"Umsatzerlöse 254.583 235.031 19.552 8,3%\"},{\"metric\":\"revenue\",\"period\":\"FY2025\",\"value\":254583198.88,\"unit\":\"EUR\",\"region\":null,\"segment\":null,\"page\":9,\"quote\":\"1. Umsatzerlöse 254.583.198,88 235.030.572,73\"},{\"metric\":\"revenue\",\"period\":\"FY2025\",\"value\":163241,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Labor Verbrauchsgüter\",\"page\":14,\"quote\":\"Labor Verbrauchsgüter 163.241 149.882\"},{\"metric\":\"revenue\",\"period\":\"FY2025\",\"value\":53195,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Labor Investitionsgüter\",\"page\":14,\"quote\":\"Labor Investitionsgüter 53.195 49.225\"},{\"metric\":\"revenue\",\"period\":\"FY2025\",\"value\":24008,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Chemikalien\",\"page\":14,\"quote\":\"Chemikalien 24.008 21.300\"},{\"metric\":\"revenue\",\"period\":\"FY2025\",\"value\":14139,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Dienstleistungen\",\"page\":14,\"quote\":\"Dienstleistungen 14.139 14.624\"},{\"metric\":\"revenue\",\"period\":\"FY2025\",\"value\":201326,\"unit\":\"EUR_k\",\"region\":\"Inland\",\"segment\":null,\"page\":14,\"quote\":\"Inland 201.326 183.940\"},{\"metric\":\"revenue\",\"period\":\"FY2025\",\"value\":53257,\"unit\":\"EUR_k\",\"region\":\"Ausland\",\"segment\":null,\"page\":14,\"quote\":\"Ausland 53.257 51.091\"},{\"metric\":\"employees\",\"period\":\"FY2025\",\"value\":212,\"unit\":\"count\",\"region\":null,\"segment\":null,\"page\":2,\"quote\":\"Zum 31. Dezember 2025 hat die Gesellschaft 212 Mitarbeiter beschäftigt und liegt damit unter dem Vorjahresniveau von 218 Mitarbeitern.\"},{\"metric\":\"employees\",\"period\":\"FY2025\",\"value\":210,\"unit\":\"count\",\"region\":null,\"segment\":\"average\",\"page\":15,\"quote\":\"Die durchschnittliche Zahl der beschäftigten Arbeitnehmer betrug im Berichtszeitraum 210 (Vorjahr 231), davon waren 26 im Lager, 136 im Vertrieb, 35 in der Verwaltung und 13 im Service beschäftigt.\"}]}"
+}

@@ -1,0 +1,12 @@
+{
+ "file": "data/raw/registers/de_vwr-international-gmbh_2024_aufsichtsratsprotokoll.pdf",
+ "sha256": "f5b429b140aee4bb7ba02e9757ee87f04490e41fa5f03bda6f88c011255d3b5d",
+ "model": "claude-sonnet-5-5",
+ "prompt_version": "m3-v1",
+ "extracted_at": "2026-11-18T17:21:23+00:00",
+ "usage": {
+  "input_tokens": 24890,
+  "output_tokens": 435
+ },
+ "response_text": "{\"facts\":[{\"metric\":\"revenue_growth\",\"period\":\"FY2024\",\"value\":-4,\"unit\":\"%\",\"region\":null,\"segment\":null,\"page\":2,\"quote\":\"Sie wies darauf hin, dass die Umsatzerlöse um rund 4 % zurückgegangen sind, was vor allem auf die anhaltenden geopolitischen Spannungen, die hohen Energiekosten sowie die Zurückhaltung\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":562.6,\"unit\":\"EUR_m\",\"region\":null,\"segment\":null,\"page\":8,\"quote\":\"–Rückgang der Umsatzerlöse um Mio. EUR 23,7 auf Mio. EUR 562,6 auf Grund der rückläufigen Nachfrage nach Labortechnik und Verbrauchsmaterialien.\"},{\"metric\":\"revenue_growth\",\"period\":\"FY2024\",\"value\":-23.7,\"unit\":\"EUR_m\",\"region\":null,\"segment\":null,\"page\":8,\"quote\":\"–Rückgang der Umsatzerlöse um Mio. EUR 23,7 auf Mio. EUR 562,6 auf Grund der rückläufigen Nachfrage nach Labortechnik und Verbrauchsmaterialien.\"}]}"
+}

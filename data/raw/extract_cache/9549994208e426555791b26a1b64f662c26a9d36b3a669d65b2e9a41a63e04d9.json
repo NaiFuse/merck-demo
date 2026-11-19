@@ -1,0 +1,12 @@
+{
+ "file": "data/raw/registers/de_fisher-scientific-gmbh_2024_jahresabschluss.pdf",
+ "sha256": "9549994208e426555791b26a1b64f662c26a9d36b3a669d65b2e9a41a63e04d9",
+ "model": "claude-sonnet-5-5",
+ "prompt_version": "m3-v1",
+ "extracted_at": "2026-11-18T17:21:09+00:00",
+ "usage": {
+  "input_tokens": 64176,
+  "output_tokens": 916
+ },
+ "response_text": "{\"facts\":[{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":235031,\"unit\":\"EUR_k\",\"region\":null,\"segment\":null,\"page\":3,\"quote\":\"Umsatzerlöse 235.031 227.464 7.567 3,3%\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":235030572.73,\"unit\":\"EUR\",\"region\":null,\"segment\":null,\"page\":9,\"quote\":\"1. Umsatzerlöse 235.030.572,73 227.464.283,96\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":149882,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Labor Verbrauchsgüter\",\"page\":14,\"quote\":\"Labor Verbrauchsgüter 149.882 140.192\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":49225,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Labor Investitionsgüter\",\"page\":14,\"quote\":\"Labor Investitionsgüter 49.225 49.514\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":21300,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Chemikalien\",\"page\":14,\"quote\":\"Chemikalien 21.300 19.310\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":14624,\"unit\":\"EUR_k\",\"region\":null,\"segment\":\"Dienstleistungen\",\"page\":14,\"quote\":\"Dienstleistungen 14.624 18.448\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":183940,\"unit\":\"EUR_k\",\"region\":\"Inland\",\"segment\":null,\"page\":14,\"quote\":\"Inland 183.940 181.154\"},{\"metric\":\"revenue\",\"period\":\"FY2024\",\"value\":51091,\"unit\":\"EUR_k\",\"region\":\"Ausland\",\"segment\":null,\"page\":14,\"quote\":\"Ausland 51.091 46.310\"},{\"metric\":\"employees\",\"period\":\"FY2024\",\"value\":218,\"unit\":\"count\",\"region\":null,\"segment\":null,\"page\":2,\"quote\":\"Zum 31. Dezember 2024 hat die Gesellschaft 218 Mitarbeiter beschäftigt und liegt damit unter dem Vorjahresniveau von 240 Mitarbeitern.\"},{\"metric\":\"employees\",\"period\":\"FY2024\",\"value\":231,\"unit\":\"count\",\"region\":null,\"segment\":\"average number of employees\",\"page\":15,\"quote\":\"Die durchschnittliche Zahl der beschäftigten Arbeitnehmer betrug im Berichtszeitraum 231 (Vorjahr 246), davon waren 28 im Lager, 155 im Vertrieb, 37 in der Verwaltung und 11 im Service.\"}]}"
+}

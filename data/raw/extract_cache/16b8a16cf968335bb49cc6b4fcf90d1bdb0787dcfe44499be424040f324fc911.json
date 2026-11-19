@@ -1,0 +1,12 @@
+{
+ "file": "data/raw/registers/de_vwr-international-gmbh_2024_aufsichtsratsbericht.pdf",
+ "sha256": "16b8a16cf968335bb49cc6b4fcf90d1bdb0787dcfe44499be424040f324fc911",
+ "model": "claude-sonnet-5-5",
+ "prompt_version": "m3-v1",
+ "extracted_at": "2026-11-18T17:21:20+00:00",
+ "usage": {
+  "input_tokens": 3464,
+  "output_tokens": 10
+ },
+ "response_text": "{\"facts\":[]}"
+}

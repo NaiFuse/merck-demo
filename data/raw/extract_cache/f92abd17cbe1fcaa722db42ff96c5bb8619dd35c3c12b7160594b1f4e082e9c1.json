@@ -1,0 +1,12 @@
+{
+ "file": "data/raw/registers/de_carl-roth-gmbh-co-kg_2023_jahresabschluss.pdf",
+ "sha256": "f92abd17cbe1fcaa722db42ff96c5bb8619dd35c3c12b7160594b1f4e082e9c1",
+ "model": "claude-sonnet-5-5",
+ "prompt_version": "m3-v1",
+ "extracted_at": "2026-11-18T17:20:44+00:00",
+ "usage": {
+  "input_tokens": 43047,
+  "output_tokens": 613
+ },
+ "response_text": "{\"facts\":[{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":101935,\"unit\":\"EUR_k\",\"region\":null,\"segment\":null,\"page\":1,\"quote\":\"Unser Unternehmen erzielte in 2023 einen Umsatz von 101.935 TEUR (2022: 101.035 TEUR).\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":101935230.8,\"unit\":\"EUR\",\"region\":null,\"segment\":null,\"page\":4,\"quote\":\"1. Umsatzerlöse 101.935.230,80 101.034.745,26\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":74420811.74,\"unit\":\"EUR\",\"region\":\"Inland\",\"segment\":null,\"page\":11,\"quote\":\"Inland 74.420.811,74\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":27514419.06,\"unit\":\"EUR\",\"region\":\"Ausland\",\"segment\":null,\"page\":11,\"quote\":\"Ausland 27.514.419,06\"},{\"metric\":\"revenue\",\"period\":\"FY2023\",\"value\":101935230.8,\"unit\":\"EUR\",\"region\":\"Gesamt\",\"segment\":null,\"page\":11,\"quote\":\"Gesamt 101.935.230,80\"},{\"metric\":\"employees\",\"period\":\"FY2023\",\"value\":265,\"unit\":\"count\",\"region\":null,\"segment\":null,\"page\":1,\"quote\":\"Die Mitarbeiterzahl (berechnet auf Vollzeit) zum Stichtag 31.12.2023 betrug 265 (2022: 251).\"},{\"metric\":\"employees\",\"period\":\"FY2023\",\"value\":285,\"unit\":\"count\",\"region\":null,\"segment\":\"average\",\"page\":11,\"quote\":\"Die Gesamtzahl der durchschnittlich beschäftigten Arbeitnehmer beträgt damit 285,00\"}]}"
+}

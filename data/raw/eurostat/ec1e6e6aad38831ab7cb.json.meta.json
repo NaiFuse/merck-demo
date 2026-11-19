@@ -1,0 +1,4 @@
+{
+ "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/rd_p_persocc?format=JSON&lang=EN&sinceTimePeriod=2015&unit=HC&prof_pos=RSE&sex=T&sectperf=HES&sectperf=GOV&geo=AT&geo=BE&geo=BG&geo=CY&geo=CZ&geo=DE&geo=DK&geo=EE&geo=EL&geo=ES&geo=FI&geo=FR&geo=HR&geo=HU&geo=IE&geo=IT&geo=LT&geo=LU&geo=LV&geo=MT&geo=NL&geo=PL&geo=PT&geo=RO&geo=SE&geo=SI&geo=SK&geo=UK&geo=CH&geo=NO&geo=IS",
+ "retrieved_at": "2026-11-18T18:18:03.436468"
+}
