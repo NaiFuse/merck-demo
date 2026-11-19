@@ -107,6 +107,17 @@ def cached_aggregate(path: Path, activity_types: list[str]) -> dict[tuple[str, i
     return agg
 
 
+def committed_aggregate(path: Path, activity_types: list[str]) -> dict[tuple[str, int, str], dict] | None:
+    """Aggregate cache + provenance meta of a zip that is not present (zip-free checkout). None if unusable."""
+    cache = path.with_suffix(".aggregate.json")
+    if not (cache.exists() and Path(str(path) + ".meta.json").exists()):
+        return None
+    d = json.loads(cache.read_text())
+    if d["key"]["activity_types"] != activity_types:
+        return None
+    return {(c, int(y), t): v for c, y, t, v in d["rows"]}
+
+
 def to_facts(agg: dict, programme: str, url: str, retrieved_at: datetime, countries: set[str]) -> list[FactRow]:
     rows = []
     for (c, y, t), v in sorted(agg.items()):
@@ -127,10 +138,15 @@ def load_all(online: bool = False, refresh: bool = False, cfg: dict | None = Non
     facts = []
     for programme, url in c["files"].items():
         path = download(url, refresh=refresh) if online else zip_path(url)
-        if not path.exists():
-            raise FileNotFoundError(f"{path} missing – run `python -m src.connectors.cordis fetch`")
-        meta = meta_for(path, url)
-        agg = cached_aggregate(path, c["activity_types"])
+        if path.exists():
+            meta = meta_for(path, url)
+            agg = cached_aggregate(path, c["activity_types"])
+        else:
+            # Deployed app: the ~90 MB zips are not in git, only the aggregate + meta computed from them
+            agg = committed_aggregate(path, c["activity_types"])
+            if agg is None:
+                raise FileNotFoundError(f"{path} missing – run `python -m src.connectors.cordis fetch`")
+            meta = read_meta(path)
         facts += to_facts(agg, programme, meta["url"], meta["retrieved_at"], set(cfg["europe_countries"]))
     return facts
 
