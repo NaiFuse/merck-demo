@@ -147,17 +147,7 @@ def test_figure_shows_c_grade_as_range():
 
 # ---------------------------------------------------------------- reconciliation
 
-def test_largest_overlap_prefers_a_and_b_and_reports_exclusions():
-    from src.models.market_model import largest_overlap
-
-    iv = {"A": (600, 1100), "B": (900, 1800), "merck_anchor": (1300, 2100), "de_floor": (150, float("inf"))}
-    sub, lo, hi = largest_overlap(iv)
-    assert set(sub) == {"A", "B", "de_floor"} and (lo, hi) == (900, 1100)
-    sub, lo, hi = largest_overlap({"A": (600, 1500), "B": (900, 1800), "merck_anchor": (1300, 2100)})
-    assert set(sub) == {"A", "B", "merck_anchor"} and (lo, hi) == (1300, 1500)
-
-
-def test_reconcile_publishes_overlap_with_checks():
+def test_reconcile_range_is_a_b_overlap_with_floor_check_and_anchor_band():
     from src.models import market_model as mm
     from src.models.reconciliation import Check
 
@@ -168,13 +158,40 @@ def test_reconcile_publishes_overlap_with_checks():
     anchor = Check("merck_anchor", "x", "total", r.normal(3000, 100, n))
     floor = Check("de_floor", "y", "total", r.normal(400, 20, n), lower_only=True)
     c = mm.reconcile(a, b, 0.15, [anchor, floor])
-    assert c.status == "range_partial" and c.grade == "C" and c.base is None
-    assert set(c.members) == {"A", "B", "de_floor"} and "merck_anchor" in c.excluded
-    assert c.excluded["merck_anchor"] > 0 and c.low < c.high
-    assert mm.reconcile(a, b, 0.15).status == "range"            # no checks: min P10 .. max P90 as before
-    far = mm.DemandCell("total", 2025, 0, 0, 0, 0, r.normal(1700, 100, n), "C")   # A and B do not overlap
-    c2 = mm.reconcile(a, far, 0.15, [anchor, floor])
-    assert {"A", "B"} & set(c2.members)                           # a primary method is kept over check-only sets
+    assert c.status == "range" and c.grade == "C" and c.base is None and c.members == ["A", "B"]
+    assert c.low == pytest.approx(b.pct[0]) and c.high == pytest.approx(a.pct[2])       # max P10 .. min P90
+    assert c.floor_check == "ok"
+    g = c.bands["merck_anchor"]
+    assert g["gap_eur"] == pytest.approx(anchor.pct[0] - c.high) and g["gap_eur"] > 0
+    assert g["gap_pct"] == pytest.approx(g["gap_eur"] / c.high)
+    # the anchor never moves the range
+    assert (mm.reconcile(a, b, 0.15).low, mm.reconcile(a, b, 0.15).high) == (c.low, c.high)
+    high_floor = Check("de_floor", "y", "total", r.normal(1200, 10, n), lower_only=True)
+    assert mm.reconcile(a, b, 0.15, [high_floor]).floor_check == "floor above range"
+    far = mm.DemandCell("total", 2025, 0, 0, 0, 0, r.normal(1700, 100, n), "C")         # no A/B overlap
+    c2 = mm.reconcile(a, far, 0.15)
+    assert c2.status == "range_no_overlap" and c2.low == pytest.approx(a.pct[0]) and c2.high == pytest.approx(far.pct[2])
+
+
+def test_band_gap_signs():
+    from src.models.market_model import band_gap
+
+    assert band_gap(100, 200, (250, 300, 350))["gap_eur"] == 50
+    assert band_gap(100, 200, (20, 50, 80))["gap_eur"] == -20
+    assert band_gap(100, 200, (150, 250, 350))["gap_eur"] == 0
+
+
+def test_bridge_lsd_view_scales_market_growth():
+    cfg = merck_ds.load_config()
+    n = 4000
+    lsd = Assumption.model_validate(cfg.anchor["market_cagr"])
+    br = share_bridge.build(cfg.bridge, np.full(n, 0.38), np.full(n, 0.045), n, seed=3, lsd=lsd)
+    m, l = br.views["model"], br.views["merck_lsd"]
+    assert np.allclose(m["g_ds"], l["g_ds"])                                   # same DS growth
+    assert 0.01 <= np.percentile(l["g_m"], 1) and np.percentile(l["g_m"], 99) <= 0.03
+    assert np.allclose(l["g_ds"] - l["g_m"], l["mix"] + l["share"])            # identity in both views
+    assert np.median(l["share"]) > np.median(m["share"])                       # lower market growth -> less share loss
+    assert br.draws is m
 
 
 def test_tri_median():

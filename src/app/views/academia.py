@@ -16,7 +16,7 @@ CL = list(ui.CLUSTERS) + [TOTAL]
 
 # ---------------------------------------------------------------- market
 
-CHECK_STYLE = {"merck_anchor": ("Merck anchor (CMD market)", "#6250d6"),
+CHECK_STYLE = {"merck_anchor": ("Merck's own addressable-market definition (broader scope)", "#6250d6"),
                "de_floor": ("German register floor (scaled, lower bound)", "#eda100")}
 
 
@@ -25,10 +25,10 @@ def market_block(ctx) -> None:
     st.markdown(f"DS-type products bought by Academia, FY{s.year}, EUR m. **A** = supply side (Thermo Fisher + "
                 f"Avantor restated, grossed up by the others' share from tender win shares); **B** = demand side "
                 f"(academic R&D spend x consumables intensity x non-R&D uplift). Two independent checks: the **Merck "
-                f"anchor** (Merck's own Discovery market, CMD 2025, scaled to the clusters) and the **German register "
-                f"floor** (Fisher Scientific GmbH + VWR International GmbH + Carl Roth). Published as a point only if A "
-                f"and B agree within {s.model.tolerance:.0%}; otherwise the grey bar is the overlap of the largest "
-                f"subset of these ranges that overlaps.")
+                f"anchor** (Merck's own Discovery market, CMD 2025, scaled to the clusters – a broader scope, shown "
+                f"as a separate band, never part of the range) and the **German register floor** (Fisher Scientific "
+                f"GmbH + VWR International GmbH + Carl Roth, a lower-bound check). Published as a point only if A and "
+                f"B agree within {s.model.tolerance:.0%}; otherwise the grey bar is the overlap of A and B.")
     rows, table = [], []
     for k in CL:
         a, b, r = s.cell(k, "A"), s.cell(k, "B"), s.cell(k, "reconciled")
@@ -41,15 +41,17 @@ def market_block(ctx) -> None:
             q = c.pct
             rows.append({"y": ui.CLUSTER_LABEL[k], "series": label, "p10": q[0], "p50": q[1], "p90": q[2],
                          "color": color})
-            extra[label.split(" (")[0]] = (f"≥ {ui.eur(q[0])}" if c.lower_only else ui.eur_range(q[0], q[2]))
+            extra["Merck anchor (separate)" if c.method == "merck_anchor" else "German floor"] = (
+                f"≥ {ui.eur(q[0])}" if c.lower_only else ui.eur_range(q[0], q[2]))
         rows.append({"y": ui.CLUSTER_LABEL[k], "series": "Published range", "p10": r.low,
                      "p50": r.base if r.base is not None else (r.low + r.high) / 2, "p90": r.high, "color": "#8a8984"})
         table.append({"cluster": ui.CLUSTER_LABEL[k], "A": ui.eur_range(a.low, a.high),
                       "B": ui.eur_range(b.low, b.high), **extra, "A/B gap": f"{r.gap_pct:.0%}",
                       "published": ui.figure(r.low, r.base, r.high, r.grade), "status": r.status,
-                      "left out (distance)": ", ".join(f"{CHECK_STYLE.get(m, (m,))[0].split(' (')[0]} "
-                                                       f"{'+' if d > 0 else '−'}{ui.eur(abs(d))}"
-                                                       for m, d in r.excluded.items()),
+                      "floor check": r.floor_check or "–",
+                      "anchor gap to range": (lambda g: "–" if not g else (
+                          f"{'+' if g['gap_eur'] >= 0 else '−'}{ui.eur(abs(g['gap_eur']))} ({g['gap_pct']:+.0%})"))(
+                          r.bands.get("merck_anchor")),
                       "grade": r.grade})
     st.plotly_chart(ui.range_chart(rows, "EUR m (P10–P90; P50 on hover)"), width="stretch")
     st.dataframe(pd.DataFrame(table), hide_index=True, width="stretch")

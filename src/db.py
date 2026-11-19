@@ -114,7 +114,7 @@ TENDERS_EXTRA_COLUMNS = {
 }
 MARKET_CELLS_EXTRA_COLUMNS = {
     "status": "VARCHAR",           # 'estimate' (A/B) | 'check' (anchor/floor) | 'published' (A, B within 15%) |
-                                   # 'range' (overlap of all) | 'range_partial' (overlap of the largest consistent subset)
+                                   # 'range' (overlap of A and B) | 'range_no_overlap' (min P10 .. max P90)
     "gap_pct": "DOUBLE",           # |A50 - B50| / mean(A50, B50) on reconciled rows
     "note": "VARCHAR",
     "computed_at": "TIMESTAMP",

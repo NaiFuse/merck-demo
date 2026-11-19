@@ -33,10 +33,14 @@ def tender_headline() -> dict | None:
             "total": t.loc[year, ("total", "EUR m")]}
 
 
-def bridge_chart(br) -> go.Figure:
-    q = {k: br.pct(br.draws[k]) for k in ("g_m", "mix", "share", "g_ds")}
+MARKET_SUB = {"model": "2025 nowcast", "merck_lsd": "Merck ~LSD, global"}
+
+
+def bridge_chart(br, view: str = "model", y_range: tuple[float, float] | None = None) -> go.Figure:
+    d = br.views.get(view, br.draws)
+    q = {k: br.pct(d[k]) for k in ("g_m", "mix", "share", "g_ds")}
     m = {k: v[1] for k, v in q.items()}
-    steps = [("Market growth<br><sub>2025 nowcast</sub>", 0.0, m["g_m"], q["g_m"], ui.COLOR["Others"]),
+    steps = [(f"Market growth<br><sub>{MARKET_SUB[view]}</sub>", 0.0, m["g_m"], q["g_m"], ui.COLOR["Others"]),
              ("Mix effect", m["g_m"], m["mix"], q["mix"], "#6250d6"),
              ("Share effect<br><sub>residual</sub>", m["g_m"] + m["mix"], m["share"], q["share"],
               "#e34948" if m["share"] < 0 else "#1baf7a"),
@@ -48,9 +52,9 @@ def bridge_chart(br) -> go.Figure:
             x=[name], y=[h], base=[base], marker=dict(color=color, cornerradius=4), width=0.55, showlegend=False,
             text=[label], textposition="outside", cliponaxis=False,
             hovertemplate=f"<b>{name}</b><br>P10–P90 {label}<br>P50 {h * 100:+.2f}pp<extra></extra>"))
-    fig.update_yaxes(title="growth, %", tickformat=".1%")
+    fig.update_yaxes(title="growth, %", tickformat=".1%", range=y_range)
     fig.add_hline(y=0, line_width=1, line_color="rgba(128,128,128,0.6)")
-    return ui.style(fig, 380, bargap=0.35)
+    return ui.style(fig, 380, bargap=0.35, title=dict(text=br.view_labels.get(view, view), font=dict(size=14)))
 
 
 def render(ctx) -> None:
@@ -73,8 +77,8 @@ def render(ctx) -> None:
     with c[1]:
         st.metric("DS-type Academia market", ui.figure(mk.low, mk.base, mk.high, mk.grade), border=True,
                   help="Published as a point only if supply side (A) and demand side (B) agree within 15%. Otherwise "
-                       "the grade-C range is the overlap of A, B, the Merck anchor and the German register floor "
-                       "(largest subset that overlaps).")
+                       "the grade-C range is the overlap of A and B, checked against the German register floor. "
+                       "Merck's own addressable-market definition is shown separately (broader scope).")
         st.markdown(ui.badge(mk.grade, short=True))
     with c[2]:
         st.metric("DS share of that market", ui.figure(sh.low, sh.base, sh.high, sh.grade, "pct"), border=True)
@@ -108,10 +112,15 @@ def render(ctx) -> None:
                      "so tenders understate Merck's reach.")
     br = s.bridge
     g = {k: br.pct(br.draws[k]) for k in ("g_m", "mix", "share", "g_ds")}
-    lines.append(f"**Growth: DS {ui.pct_range(g['g_ds'][0], g['g_ds'][2], 1)} vs. market "
-                 f"{ui.pct_range(g['g_m'][0], g['g_m'][2], 1)}** – mix {ui.pp_range(g['mix'][0], g['mix'][2])}, "
-                 f"share {ui.pp_range(g['share'][0], g['share'][2])}. :orange[Not like-for-like:] DS = Q3 2026 vs. "
-                 "Q3 2025, global DS as EMEA proxy; market = 2025 nowcast (bridge below).")
+    growth = (f"**Growth: DS {ui.pct_range(g['g_ds'][0], g['g_ds'][2], 1)} vs. market "
+              f"{ui.pct_range(g['g_m'][0], g['g_m'][2], 1)} (our nowcast)** – share effect "
+              f"{ui.pp_range(g['share'][0], g['share'][2])}")
+    if "merck_lsd" in br.views:
+        gl = {k: br.pct(br.views["merck_lsd"][k]) for k in ("g_m", "share")}
+        growth += (f"; against Merck's own ~LSD view ({ui.pct_range(gl['g_m'][0], gl['g_m'][2], 1)}) the share effect "
+                   f"is {ui.pp_range(gl['share'][0], gl['share'][2])}")
+    lines.append(growth + ". :orange[Not like-for-like:] DS = Q3 2026 vs. Q3 2025, global DS as EMEA proxy; "
+                 "market = 2025 (bridge below).")
     with st.container(border=True):
         st.markdown("#### Headline finding")
         for line in lines:
@@ -129,16 +138,31 @@ def render(ctx) -> None:
         "used as a proxy for DS EMEA. **Market growth** = 2025 vs. 2024: the Academia part is the method B *nowcast* "
         "(EMEA academic R&D spend extended at its 2019–23 CAGR), Pharma & Biotech and Industrial & Testing are "
         "estimates. Read the bridge as a direction indicator, not a measured share loss.", icon=":material/schedule:")
-    left, right = st.columns([3, 2])
-    with left:
-        st.plotly_chart(bridge_chart(br), width="stretch", theme="streamlit")
-        cagr = ctx.base.merck.anchor.get("market_cagr")
-        st.caption("Bars at the P50 (median of 10,000 draws); labels show P10–P90. All bridge inputs are grade C. "
-                   "Bar labels: DS growth = Q3 2026 global proxy · market growth = 2025 nowcast/estimates."
-                   + (f" Cross-check: Merck's own view of the global Discovery market is '~LSD' mid-term CAGR "
-                      f"({cagr['low']:.0%}–{cagr['high']:.0%}, CMD 2025 p.14) – below the modelled market growth."
-                      if cagr else ""))
-    with right:
+    views = list(br.views) or ["model"]
+    vals = [x for v in views for k in ("g_m", "g_ds") for x in (0.0, br.pct(br.views[v][k])[1])]
+    vals += [br.pct(br.views[v]["g_m"])[1] + br.pct(br.views[v]["mix"])[1] for v in views]
+    y_range = (min(vals + [0]) - 0.012, max(vals) + 0.012)    # same y-axis for both views
+    cols = st.columns(len(views))
+    for c, v in zip(cols, views):
+        with c:
+            st.plotly_chart(bridge_chart(br, v, y_range), width="stretch", theme="streamlit", key=f"bridge_{v}")
+    cagr = ctx.base.merck.anchor.get("market_cagr")
+    st.caption("Bars at the P50 (median of 10,000 draws); labels show P10–P90; same DS growth and weights in both. "
+               "All bridge inputs are grade C. Left: market growth from our model (Academia = method B nowcast; Pharma "
+               "and Industrial estimates). Right: Merck's own mid-term view of the global Discovery market, '~LSD'"
+               + (f" = {cagr['low']:.0%}–{cagr['high']:.0%} (CMD 2025 group p.14)" if cagr else "")
+               + " – segment growth rates scaled to that level, segment pattern kept.")
+    rows = []
+    for v in views:
+        d = br.views[v]
+        q = {k: br.pct(d[k]) for k in ("g_m", "mix", "share", "g_ds")}
+        rows.append({"market-growth view": br.view_labels.get(v, v), "market growth": ui.pct_range(q["g_m"][0], q["g_m"][2], 1),
+                     "mix effect": ui.pp_range(q["mix"][0], q["mix"][2]),
+                     "share effect": ui.pp_range(q["share"][0], q["share"][2]),
+                     "DS growth": ui.pct_range(q["g_ds"][0], q["g_ds"][2], 1),
+                     "P(share effect < 0)": f"{float((d['share'] < 0).mean()):.0%}"})
+    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+    with st.expander("Segment inputs and mix (our-model view)"):
         rows = []
         for k, label in br.segments.items():
             w, v, gg, mx = (br.pct(x) for x in (br.w[k], br.v[k], br.g[k], br.draws["mix_s"][k]))
@@ -147,8 +171,8 @@ def render(ctx) -> None:
                          "mix contribution": ui.pp_range(mx[0], mx[2])})
         st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
         st.markdown(ui.badge("C"))
-        st.info("**Share effect is the residual** (DS growth − market growth − mix). Splitting it by segment needs "
-                "DS growth per customer segment – see *With your data*.", icon=":material/info:")
+    st.info("**Share effect is the residual** (DS growth − market growth − mix). Splitting it by segment needs "
+            "DS growth per customer segment – see *With your data*.", icon=":material/info:")
 
     with st.expander("How to read this page"):
         st.markdown(
@@ -157,8 +181,8 @@ def render(ctx) -> None:
             "- **Market methods**: A = Thermo Fisher + Avantor revenue restated to DS-type EMEA Academia, grossed up "
             "for everyone else (others' share from tender win shares); B = academic R&D spend (Eurostat, OECD) x "
             "consumables intensity. A cell is published only if A and B agree within 15%; otherwise the range is the "
-            "overlap with two independent checks – Merck's own Discovery market (CMD 2025) scaled down, and a German "
-            "bottom-up floor from register filings.\n"
+            "overlap of A and B, checked against a German bottom-up floor from register filings. Merck's own "
+            "Discovery market (CMD 2025), scaled down, is shown separately as a broader-scope band with its gap.\n"
             "- **Sidebar sliders** move the most likely value of the key assumptions; every number recalculates.\n"
             "- Every number traces to its source on *Sources & assumptions*.")
 
@@ -167,19 +191,22 @@ METHOD_LABEL = {"A": "A", "B": "B", "merck_anchor": "the Merck anchor", "de_floo
 
 
 def reconciliation_line(s) -> str:
-    """One sentence: which checks the published range is the overlap of, and what was left out (remaining gap)."""
-    from src.models.market_model import TOTAL as T
+    """Range basis, floor check and the Merck anchor band with its gap to the range (EUR and %)."""
+    from src.models.market_model import ANCHOR_LABEL, TOTAL as T
 
     mk = s.cell(T, "reconciled")
-    if mk.status == "published" or not mk.members:
-        return ""
-    names = [METHOD_LABEL.get(m, m) for m in mk.members]
-    out = "The range is the overlap of " + (", ".join(names[:-1]) + " and " + names[-1] if len(names) > 1
-                                            else names[0]) + "."
-    for m, d in mk.excluded.items():
-        label = METHOD_LABEL.get(m, m)
-        out += (f" {label[0].upper() + label[1:]} is left out – it sits {ui.eur(abs(d))} "
-                f"{'above' if d > 0 else 'below'} the range (remaining gap).")
+    out = "" if mk.status == "published" else (
+        "The range is the overlap of A and B." if mk.status == "range" else "A and B do not overlap; range = min–max.")
+    if mk.floor_check:
+        out += (" The German register floor is below it (consistent)." if mk.floor_check == "ok"
+                else " :orange[The German register floor is above the range low – check.]")
+    band = mk.bands.get("merck_anchor")
+    if band:
+        where = "above" if band["gap_eur"] > 0 else "below" if band["gap_eur"] < 0 else "overlapping"
+        out += (f" Shown separately – *{ANCHOR_LABEL}*: {ui.eur_range(band['low'], band['high'])}, "
+                + (f"{ui.eur(abs(band['gap_eur']))} ({abs(band['gap_pct']):.0%}) {where} our range"
+                   if band["gap_eur"] else "overlapping our range")
+                + f"; P50 {band['mid_gap_pct']:+.0%} vs. the range midpoint.")
     return out
 
 

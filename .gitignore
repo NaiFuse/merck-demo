@@ -24,3 +24,6 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+
+# Tool-generated mirror of CLAUDE.md (not ours)
+AGENTS.md

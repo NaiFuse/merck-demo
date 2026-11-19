@@ -137,6 +137,8 @@ def trace(ctx, what: str) -> None:
         st.caption(o["source"])
         st.markdown("Award rows and notice links: choose *Tender win shares*.")
     elif what == "Merck market anchor":
+        from src.models.market_model import ANCHOR_LABEL
+        st.caption(f"Shown as a separate band – {ANCHOR_LABEL} – never part of the published range.")
         an = s.check_info.get("anchor")
         if not an:
             st.info(s.check_info.get("anchor_error", "not available"))

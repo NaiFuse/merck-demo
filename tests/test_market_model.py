@@ -148,7 +148,7 @@ def test_reconcile_publishes_within_tolerance_else_range():
     assert (ok.status, ok.grade) == ("published", "B") and ok.base == pytest.approx(105.0, abs=0.5)
     assert ok.gap_pct == pytest.approx(10 / 105)
     bad = mm.reconcile(a, far, 0.15)
-    assert (bad.status, bad.grade, bad.base) == ("range", "C", None)
+    assert (bad.status, bad.grade, bad.base) == ("range_no_overlap", "C", None)   # A, B do not overlap: min..max
     assert bad.low == pytest.approx(92.0) and bad.high == pytest.approx(290.0)
 
 

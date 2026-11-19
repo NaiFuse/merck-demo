@@ -178,61 +178,66 @@ class MarketCell:
     base: float | None
     high: float | None
     grade: str
-    status: str                    # 'estimate' | 'check' | 'published' | 'range' | 'range_partial'
+    status: str                    # 'estimate' | 'check' | 'published' | 'range' | 'range_no_overlap'
     gap_pct: float | None = None   # |A50 - B50| / mean(A50, B50), reconciled rows only
     note: str = ""
-    members: list = field(default_factory=list)     # reconciled range: methods/checks whose ranges overlap
-    excluded: dict = field(default_factory=dict)    # method -> distance to the range, EUR m (+ above, - below)
+    members: list = field(default_factory=list)     # methods whose overlap is the range (A, B)
+    floor_check: str = ""                           # '' | 'ok' | 'floor above range' (German register floor)
+    bands: dict = field(default_factory=dict)       # separate bands (Merck anchor): method -> band_gap() dict
+
+
+ANCHOR_LABEL = "Merck's own addressable-market definition (broader scope)"
+
+
+def band_gap(lo: float, hi: float, q: tuple[float, float, float]) -> dict:
+    """Distance of a separate band (P10/P50/P90) from the published range [lo, hi]: € and % at the nearest ends,
+    and P50 vs the range midpoint. Positive = band above the range; 0 if they overlap."""
+    if q[0] > hi:
+        gap = q[0] - hi
+        pct = gap / hi
+    elif q[2] < lo:
+        gap = q[2] - lo
+        pct = gap / lo
+    else:
+        gap = pct = 0.0
+    return {"low": q[0], "base": q[1], "high": q[2], "gap_eur": gap, "gap_pct": pct,
+            "mid_gap_pct": q[1] / ((lo + hi) / 2) - 1}
 
 
 def reconcile(a: SupplyCell, b: DemandCell, tolerance: float, checks: list | None = None) -> MarketCell:
     """Published cells are grade B (two independent methods agree), or A if both inputs were A already.
-    Otherwise grade C: the overlap of A, B and the independent checks (reconciliation.Check: P10/P90, lower-only
-    checks contribute their P10); if they do not overlap, the gap between the closest bounds (flagged)."""
+    Otherwise grade C range = overlap of A and B (max P10 .. min P90); if they do not overlap, min P10 .. max P90
+    ('range_no_overlap'). Lower-bound checks (German floor) are tested against the range, never move it. Two-sided
+    checks (Merck anchor) are separate bands with their gap to the range, never part of it."""
     a50, b50 = a.pct[1], b.pct[1]
     gap = abs(a50 - b50) / ((a50 + b50) / 2)
     if gap <= tolerance:
         lo, mid, hi = _pct(np.concatenate([a.draws, b.draws]))
         grade = "A" if a.grade == b.grade == "A" else "B"
-        return MarketCell(a.cluster, a.year, "reconciled", lo, mid, hi, grade, "published", gap,
-                          f"A and B agree within {tolerance:.0%} (gap {gap:.1%}); pooled A+B draws P10/P50/P90")
-    head = f"A {a50:,.0f} vs B {b50:,.0f} EUR m: gap {gap:.0%} > {tolerance:.0%}"
-    if not checks:
-        lo, hi = min(a.pct[0], b.pct[0]), max(a.pct[2], b.pct[2])
-        return MarketCell(a.cluster, a.year, "reconciled", lo, None, hi, "C", "range", gap,
-                          f"{head} – range min P10 .. max P90")
-    iv = {"A": (a.pct[0], a.pct[2]), "B": (b.pct[0], b.pct[2])}
-    for c in checks:
+        status, note = "published", f"A and B agree within {tolerance:.0%} (gap {gap:.1%}); pooled A+B draws P10/P50/P90"
+    else:
+        mid, grade = None, "C"
+        lo, hi = max(a.pct[0], b.pct[0]), min(a.pct[2], b.pct[2])
+        head = f"A {a50:,.0f} vs B {b50:,.0f} EUR m: gap {gap:.0%} > {tolerance:.0%}"
+        if lo < hi:
+            status, note = "range", f"{head} – overlap of A and B (max P10 .. min P90)"
+        else:
+            lo, hi = min(a.pct[0], b.pct[0]), max(a.pct[2], b.pct[2])
+            status, note = "range_no_overlap", f"{head} – A and B do not overlap: range min P10 .. max P90"
+    cell = MarketCell(a.cluster, a.year, "reconciled", lo, mid, hi, grade, status, gap, note, ["A", "B"])
+    for c in checks or []:
         q = c.pct
-        iv[c.method] = (q[0], float("inf") if c.lower_only else q[2])
-    sub, lo, hi = largest_overlap(iv)
-    excluded = {m: (iv[m][0] - hi if iv[m][0] > hi else iv[m][1] - lo) for m in iv if m not in sub}
-    parts = [f"{head} – overlap of {', '.join(sub)}"]
-    for m, d in excluded.items():
-        parts.append(f"{m} excluded: its P10 {iv[m][0]:,.0f} is {d:,.0f} above the overlap" if d > 0
-                     else f"{m} excluded: its P90 {iv[m][1]:,.0f} is {-d:,.0f} below the overlap")
-    return MarketCell(a.cluster, a.year, "reconciled", lo, None, hi, "C", "range_partial" if excluded else "range",
-                      gap, "; ".join(parts), list(sub), excluded)
-
-
-def largest_overlap(iv: dict[str, tuple[float, float]]) -> tuple[list[str], float, float]:
-    """Largest subset of intervals with a common overlap; ties -> more of the primary methods A, B, then narrowest.
-    Returns (members, low, high). A and B always overlap with themselves, so a subset of size >= 1 exists."""
-    from itertools import combinations
-
-    names = list(iv)
-    best = None
-    for r in range(len(names), 0, -1):
-        for sub in combinations(names, r):
-            lo = max(iv[m][0] for m in sub)
-            hi = min(iv[m][1] for m in sub)
-            if lo < hi and hi != float("inf"):
-                key = (r, len({"A", "B"} & set(sub)), -(hi - lo))   # primary methods before checks
-                if best is None or key > best[0]:
-                    best = (key, list(sub), lo, hi)
-        if best is not None:
-            break
-    return best[1], best[2], best[3]
+        if c.lower_only:
+            ok = q[0] <= lo
+            cell.floor_check = "ok" if ok else "floor above range"
+            cell.note += (f"; {c.method} P10 {q[0]:,.0f} {'below' if ok else 'ABOVE'} the range low {lo:,.0f}"
+                          + ("" if ok else " – CHECK"))
+        else:
+            cell.bands[c.method] = band_gap(lo, hi, q)
+            g = cell.bands[c.method]
+            cell.note += (f"; {c.method} shown separately: P10 {q[0]:,.0f} is {g['gap_eur']:+,.0f} ({g['gap_pct']:+.0%}) "
+                          f"from the range, P50 {g['mid_gap_pct']:+.0%} vs range midpoint")
+    return cell
 
 
 @dataclass

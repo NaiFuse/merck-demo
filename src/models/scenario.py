@@ -212,7 +212,9 @@ def run(base: Base, overrides: dict[str, float]) -> Scenario:
     ds = merck_ds.estimate(merck, market, methods, rec, n, seed + 300, overrides.get(EMEA_REVENUE))
     b = {(c.cluster, c.year): c.draws for c in model.demand}
     acad_growth = b[(market_model.TOTAL, year)] / b[(market_model.TOTAL, year - 1)] - 1
-    bridge = share_bridge.build(merck.bridge, ds.academia_share, acad_growth, n, seed + 400)
+    lsd = merck.anchor.get("market_cagr")
+    bridge = share_bridge.build(merck.bridge, ds.academia_share, acad_growth, n, seed + 400,
+                                Assumption.model_validate(lsd) if lsd else None)
     band = tuple(market.reconciliation.get("ds_share_plausible", (0.05, 0.30)))
     share_checks = reconciliation.implied_shares(ds.academia, methods, peers, band)
     gap = reconciliation.gap_decomposition(peers, base.panel, base.facts)

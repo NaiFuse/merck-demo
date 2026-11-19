@@ -11,8 +11,9 @@ Checks (per cluster, FY2025, EUR m, Monte Carlo draws):
                 for Germany. Scaled to DACH / the 3 clusters by Germany's share of academic research (B), so the
                 scaled value is an estimate, not a hard floor                                   -> lower bound, grade C
 Reconciliation (market_model.reconcile): A and B within 15% -> published as before. Otherwise the published grade-C
-range is the overlap [max lower bound, min upper bound] over A, B, anchor (P10/P90) and floor (P10 only); if the
-ranges do not overlap, the range is the gap between the closest bounds (every check touches it) and is flagged.
+range is the overlap of A and B (max P10 .. min P90). The German floor is a check against that range (its P10 must not
+exceed the range low). The Merck anchor is NOT part of the range: it is shown as a separate band ("Merck's own
+addressable-market definition (broader scope)") with its gap to the range in EUR and %.
 Gap decomposition: A and B with every input at its median (~ the Monte Carlo P50 case), one input moved at a time:
 swing across its stated range, and the break-even value that alone would close the gap.
 """
@@ -122,7 +123,7 @@ def checks(peers: RunResult, facts: list[FactRow], merck, n: int, seed: int) -> 
     try:
         anchor, info["anchor"] = merck_anchor(facts, market, merck, peers.configs, n, seed + 500)
         for k, d in anchor.items():
-            out[k].append(Check("merck_anchor", "Merck anchor (CMD Discovery market)", k, d,
+            out[k].append(Check("merck_anchor", "Merck's own addressable-market definition (broader scope)", k, d,
                                 note="CMD 2025 ~EUR 80bn global Discovery market x Europe x cluster x Academia x scope"))
     except KeyError as e:
         info["anchor_error"] = str(e)

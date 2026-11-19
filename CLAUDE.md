@@ -49,7 +49,7 @@ tender_awards(notice_id, seq, winner_name, winner_id, value, currency, value_eur
 fx_rates(currency, month, units_per_eur, source_url, retrieved_at)
 market_cells(segment, category, cluster, year, method, value_low, value_base, value_high, grade,
              + status, gap_pct, note, computed_at)  method = 'A' | 'B' | 'merck_anchor' | 'de_floor' | 'reconciled';
-             status = estimate | check | published | range | range_partial; category 'all_ds' = all DS
+             status = estimate | check | published | range | range_no_overlap; category 'all_ds' = all DS
              categories; cluster 'total' = sum of 3 clusters; values = MC P10/P50/P90 (EUR m)
 
 ## Demo scope
@@ -69,8 +69,9 @@ Market model (src/models/market_model.py, config/assumptions/market.yaml demand/
   Academia weight x scope overlap (C); de_floor = Fisher Scientific GmbH + VWR International GmbH + Carl Roth register
   filings (Germany, lower bound), scaled by Germany's research share (C).
   Reconciled: |A50 - B50| / mean <= 15% -> pooled-draw P10/P50/P90, grade B ('published'); else grade C range = overlap
-  of the largest subset of A, B, anchor (P10-P90) and floor (P10, lower bound only) that overlaps (ties: more of A/B,
-  then narrowest); excluded checks and their distance are stated ('range_partial').
+  of A and B (max P10 .. min P90; 'range'), or min P10 .. max P90 if they do not overlap ('range_no_overlap'). The
+  German floor is a check (its P10 must be below the range low). The Merck anchor is never part of the range: shown as a
+  separate band "Merck's own addressable-market definition (broader scope)" with its gap to the range in EUR and %.
   Gap decomposition: A and B at input medians, one input moved across its range; break-even value per input.
   Implied DS share per method; flag 'implausible' if DS > market - peers + their resold Merck, 'check' if outside
   market.yaml reconciliation.ds_share_plausible.
@@ -108,5 +109,8 @@ Fisher Scientific GmbH / VWR International GmbH register filings. Output grade =
 
 ## Share bridge
 g_DS - g_M = sum_s (w_s - v_s) * g_s  [mix]  +  sum_s w_s * (g_DS_s - g_s)  [share]
+Share term = residual (no DS growth by segment). Two market-growth views side by side: our model (2025 nowcast) and
+Merck's own Discovery '~LSD' (1-3%, C; segment growth scaled to that level). DS growth = Q3 2026 global organic as EMEA
+proxy – not like-for-like, labelled on the Overview.
 
 ## File naming in data/raw: <country>_<company>_<fiscal-year>_<document>.pdf (lowercase, hyphens, fiscal year = year covered)
