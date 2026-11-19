@@ -85,6 +85,9 @@ def main() -> None:
         st.stop()
     overrides = sidebar()
     ctx = Ctx(b, scenario(tuple(sorted(overrides.items()))), scenario(()))
+    from src.app.report_button import report_button
+
+    report_button(ctx, where="sidebar")
 
     from src.app.views import academia, overview, peers, phase2, sources
 

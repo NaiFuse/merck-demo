@@ -13,6 +13,7 @@ dependencies = [
     "pypdf>=7.1.1",
     "python-dotenv",
     "pyyaml",
+    "reportlab>=5.1.0",
     "streamlit",
 ]
 

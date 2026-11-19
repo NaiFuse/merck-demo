@@ -2,9 +2,11 @@
 
     uv run python -m src.extract.manual_facts
 
-Used where the text layer scrambles a table so an extracted quote cannot show the label next to its number. Every
-quote fragment must be verbatim on the stated page, the value fragment must be inside one of them and contain the
-value, and the row label must be on the page. Facts that fail are rejected with the reason (never stored).
+Two kinds of entries:
+  - table facts: the text layer scrambles a table, so the label/value pairing is read from the rendered page; every
+    quote fragment must be verbatim on the page, the value fragment inside one of them, the label on the page;
+  - plain quotes (no label / value_fragment): one verbatim sentence on the page that contains the value.
+Facts that fail are rejected with the reason (never stored).
 """
 
 from __future__ import annotations
@@ -25,18 +27,21 @@ def verify(item: dict, pages: list[str]) -> list[str]:
     from src.extract.pdf import find_quote_pages, normalise
 
     page = item["page"]
-    problems = [f"fragment not on p.{page}: {q!r}" for q in item["quotes"] + [item["label"]]
+    label = [item["label"]] if item.get("label") else []
+    problems = [f"fragment not on p.{page}: {q!r}" for q in item["quotes"] + label
                 if page not in find_quote_pages(q, pages)]
-    vf = normalise(item["value_fragment"])
-    if not any(vf in normalise(q) for q in item["quotes"]):
-        problems.append(f"value fragment {item['value_fragment']!r} not inside any quote")
-    if not quote_contains_value(item["value_fragment"], item["value"], item["unit"]):
-        problems.append(f"value fragment {item['value_fragment']!r} does not contain {item['value']} {item['unit']}")
+    frag = item.get("value_fragment") or item["quotes"][0]
+    if not any(normalise(frag) in normalise(q) for q in item["quotes"]):
+        problems.append(f"value fragment {frag!r} not inside any quote")
+    if not quote_contains_value(frag, item["value"], item["unit"]):
+        problems.append(f"value fragment {frag!r} does not contain {item['value']} {item['unit']}")
     return problems
 
 
 def quote_text(item: dict) -> str:
     """Stored facts.quote: page, verbatim fragments, and how the label/value pairing was read."""
+    if not item.get("label"):
+        return f"p.{item['page']}: {item['quotes'][0]}" + (f" [{item['note']}]" if item.get("note") else "")
     frags = " | ".join(f'"{q}"' for q in item["quotes"])
     return (f"p.{item['page']}: row {item['label']!r} = {item['value_fragment']!r}; verbatim text-layer runs: {frags}. "
             f"Pairing: {item['pairing']}")

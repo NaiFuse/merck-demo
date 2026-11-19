@@ -1,0 +1,24 @@
+# EU public procurement thresholds (Directive 2014/24/EU, Article 4), from the official Commission delegated
+# regulations, fetched as XHTML from the Publications Office CELLAR API (src/connectors/eurlex.py).
+# Each fact: the quote must appear verbatim in the act's text and contain the value (rule 1).
+# Article 4(b) = supply and service contracts awarded by central government authorities;
+# Article 4(c) = supply and service contracts awarded by sub-central contracting authorities (e.g. Länder universities).
+acts:
+  - celex: 32023R2495
+    eli: http://data.europa.eu/eli/reg_del/2023/2495/oj
+    title: Commission Delegated Regulation (EU) 2023/2495 – thresholds 2024-2025
+    applies: [2024, 2025]
+    facts:
+      - {metric: procurement_threshold_supplies_central, value: 143000,
+         quote: "in point (b), ‘EUR 140 000’ is replaced by ‘EUR 143 000’"}
+      - {metric: procurement_threshold_supplies_subcentral, value: 221000,
+         quote: "in point (c), ‘EUR 215 000’ is replaced by ‘EUR 221 000’"}
+  - celex: 32025R2152
+    eli: http://data.europa.eu/eli/reg_del/2025/2152/oj
+    title: Commission Delegated Regulation (EU) 2025/2152 – thresholds 2026-2027
+    applies: [2026, 2027]
+    facts:
+      - {metric: procurement_threshold_supplies_central, value: 140000,
+         quote: "in point (b), ‘EUR 143 000’ is replaced by ‘EUR 140 000’"}
+      - {metric: procurement_threshold_supplies_subcentral, value: 216000,
+         quote: "in point (c), ‘EUR 221 000’ is replaced by ‘EUR 216 000’"}

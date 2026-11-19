@@ -137,13 +137,14 @@ def base_facts() -> list[FactRow]:
     facts, problems = edgar.load_all(online=False)
     if problems:
         raise RuntimeError("EDGAR cross-check failed: " + "; ".join(problems))
+    from src.connectors import eurlex
     from src.extract import manual_facts
 
     accepted, _ = pdf.verify_all_cached()
     manual, problems = manual_facts.load_all()
     if problems:
         raise RuntimeError("manual facts failed verification: " + "; ".join(problems))
-    return facts + accepted + manual + research_base.load_facts(online=False)
+    return facts + accepted + manual + eurlex.load_all(online=False) + research_base.load_facts(online=False)
 
 
 def build_all() -> tuple[list[FactRow], list[AssumptionRow], list[dict]]:
@@ -152,8 +153,10 @@ def build_all() -> tuple[list[FactRow], list[AssumptionRow], list[dict]]:
     from src.models.peer_restatement import check_source_quotes
 
     facts = base_facts()
+    from src.models import findings
+
     peers, model = market_model.build(facts)
-    facts += peers.fact_rows() + model.fact_rows()
+    facts += peers.fact_rows() + model.fact_rows() + findings.derived_fact_rows(facts)
     merck = merck_ds.load_config().assumptions()
     problems = check_source_quotes(merck)
     if problems:

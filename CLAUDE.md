@@ -22,15 +22,22 @@ Python 3.12, uv, DuckDB (data/demo.duckdb), httpx, pydantic, pandas, Anthropic S
 (model name from env var ANTHROPIC_MODEL), Streamlit + Plotly for the dashboard, pytest.
 
 ## Folder structure
-src/connectors/   one file per source (ted, uk_fts, edgar, eurostat, oecd_msti, cordis, openalex, companies_house, inpi);
+src/connectors/   one file per source (ted, uk_fts, edgar, eurostat, oecd_msti, cordis, openalex, eurlex, companies_house,
+                  inpi); eurlex = EU procurement thresholds via the Publications Office CELLAR API (config/eurlex.yaml);
                   tender_store.py = shared tender writes (batched, rule 7); http_cache.py = polite GET + data/raw cache
 src/extract/      LLM extraction from PDFs with quotes (pdf.py) + quote/number checks (numbers.py) + manual_facts.py
                   (facts read from a rendered page image when the text layer scrambles a table; fragments verified)
 src/facts_store.py shared batched writes for documents/facts/assumptions (rule 7)
 src/models/       taxonomy, peer restatement, research_base (country panel + cluster shares), market_model (A/B),
                   merck_ds (DS EMEA Academia estimate + share), share_bridge, scenario (slider overrides, live rerun),
-                  others_share (from tenders), reconciliation (anchor, floor, implied shares, gap decomposition)
-src/app/          Streamlit: main.py (nav + sidebar sliders), ui.py (formatting, rule-3 ranges), views/ (5 pages)
+                  others_share (from tenders), reconciliation (anchor, floor, implied shares, gap decomposition),
+                  findings (the 3 headline findings: figures with grade + source + caveats; derived growth facts)
+src/report/       academia_report.py: PDF report (reportlab) – findings, market + anchor band, peers, tenders,
+                  sources, 'With your data'; one-click download in the app sidebar
+src/refresh.py    full refresh into a new DB (TED copied from the current DB – no file cache – and re-verified; FTS
+                  load-cache; build_all; report), plausibility checks, diff; --swap replaces data/demo.duckdb
+src/app/          Streamlit: main.py (nav + sidebar sliders + PDF button), ui.py (formatting, rule-3 ranges), views/ (5
+                  pages; Overview = finding 1 lead, market strip, finding 2, finding 3 bridge), report_button.py
 config/           taxonomy.yaml, research_sources.yaml (countries + API queries), assumptions/*.yaml (one per peer + market
                   + merck_ds.yaml: quoted Merck disclosures, DS estimates, bridge inputs)
 data/raw/         manually downloaded PDFs (merck, peers, registers)
@@ -88,6 +95,12 @@ consumables, analyser bundles and Merck lab water; frameworks incl. framework-li
 equal split). Groups: Thermo Fisher, Avantor, Merck, multi-brand distributors, others. Win shares, not market
 shares. Negative tender values (TED -1 = not disclosed) are stored as NULL.
 Phase-2 placeholders: Pharma, Industry & Service, customer survey, exact DS share.
+
+## Headline findings (src/models/findings.py; Overview + PDF)
+1 Germany: Fisher Scientific GmbH academic +7.0/+7.6/+16.8% (FY23-25), VWR International GmbH declining, DS +1.7%
+  (Q3 2026, global), German academic R&D +7.1% (2024) – disclosed figures side by side, no causal claim.
+2 Below the tender radar: >90% of DS customers spend < EUR 100k/yr (CMD) vs EU supply thresholds (EUR-Lex 2023/2495,
+  2025/2152); Merck direct tender win share vs estimated DS market share. 3 Dual-view share bridge (closing panel).
 
 ## Product categories (DS-equivalent)
 Chemistry catalogue; solvents & bulk lab chemicals; analytical reagents & standards;

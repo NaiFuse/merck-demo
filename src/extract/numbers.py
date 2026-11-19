@@ -1,6 +1,7 @@
 """Find numbers in a quote and check that one of them is a given value (rule 1: the quote must contain the number).
 
 Handles US (1,234.5) and German (1.234,5) formats, ambiguous single separators (1,234 / 1.234 -> both readings),
+space-grouped thousands as in the EU Official Journal (EUR 5 538 000 -> an extra reading),
 negatives as -x or (x), percentages and scale words after the number (million, bn, Mio., Mrd., ...).
 A bare number (no scale word) is read in the fact's own unit, as in a table headed "in millions".
 """
@@ -65,6 +66,10 @@ def _readings_of(num: str) -> list[tuple[float, int]]:
     return [as_decimal]
 
 
+# Space-grouped thousands as in the EU Official Journal ('EUR 5 538 000'): regular, no-break, thin spaces.
+_SPACED_RE = re.compile(r"(?<![\d.,])\d{1,3}(?:[ \u00a0\u2009\u202f]\d{3})+(?![\d.,]?\d)")
+
+
 def find_numbers(text: str) -> list[Reading]:
     out: list[Reading] = []
     for m in _NUM_RE.finditer(text or ""):
@@ -73,6 +78,8 @@ def find_numbers(text: str) -> list[Reading]:
         scale = SCALE_WORDS.get(scale_word)
         for val, dec in _readings_of(m.group("num")):
             out.append(Reading(-val if neg else val, dec, scale or 1.0, scale is not None, bool(m.group("pct"))))
+    for m in _SPACED_RE.finditer(text or ""):   # extra reading only; the separate groups above are kept
+        out.append(Reading(float(re.sub(r"\D", "", m.group(0))), 0, 1.0, False, False))
     return out
 
 

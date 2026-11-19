@@ -28,3 +28,63 @@ facts:
       'Discovery(3) ~€80 bn ~LSD'. Other rows: Process Products ~€35 bn ~9 to 10%; Advanced ~€105 bn ~MSD;
       Total Market ~€220 bn ~4 to 6%. Footnote 2: company estimate for addressable markets in 2025; footnote 3:
       relevant addressable market segments for Discovery Solutions (global, all customer groups).
+
+  # ---------------------------------------------------------------- plain verbatim quotes (no table pairing)
+  # Fisher Scientific GmbH (Thermo Fisher's German distribution company) – segment growth from the Lagebericht
+  - {entity: fisher_scientific_gmbh, period: FY2023, metric: segment_revenue_growth, value: 7.0, unit: "%",
+     region: Germany, segment: Academic, grade: A, page: 3,
+     file: data/raw/registers/de_fisher-scientific-gmbh_2023_jahresabschluss.pdf,
+     quotes: ["Herausragend war mit einem Wachstum von 7,0 % der akademische Bereich"]}
+  - {entity: fisher_scientific_gmbh, period: FY2024, metric: segment_revenue_growth, value: 7.6, unit: "%",
+     region: Germany, segment: Academic, grade: A, page: 3,
+     file: data/raw/registers/de_fisher-scientific-gmbh_2024_jahresabschluss.pdf,
+     quotes: ["Herausragend war mit einem Wachstum von 7,6 % der akademische Bereich"]}
+  - {entity: fisher_scientific_gmbh, period: FY2025, metric: segment_revenue_growth, value: 16.8, unit: "%",
+     region: Germany, segment: Academic, grade: A, page: 3,
+     file: data/raw/registers/de_fisher-scientific-gmbh_2025_jahresabschluss.pdf,
+     quotes: ["Herausragend war der akademische Bereich mit einem Wachstum von 16,8 %"]}
+  - {entity: fisher_scientific_gmbh, period: FY2025, metric: segment_revenue_growth, value: 11.8, unit: "%",
+     region: Germany, segment: Pharma, grade: A, page: 3,
+     file: data/raw/registers/de_fisher-scientific-gmbh_2025_jahresabschluss.pdf,
+     quotes: ["Die umsatzstärksten Segmente im Jahr 2025 waren Pharma (+11,8 %) und Academic (+16,8 %)"]}
+  - {entity: fisher_scientific_gmbh, period: FY2025, metric: segment_revenue_growth, value: -4.1, unit: "%",
+     region: Germany, segment: Biotech, grade: A, page: 3,
+     file: data/raw/registers/de_fisher-scientific-gmbh_2025_jahresabschluss.pdf,
+     quotes: ["außer dem Segment Biotech (-4,1 %) und Industry (-8,7 %)"]}
+  - {entity: fisher_scientific_gmbh, period: FY2025, metric: segment_revenue_growth, value: -8.7, unit: "%",
+     region: Germany, segment: Industry, grade: A, page: 3,
+     file: data/raw/registers/de_fisher-scientific-gmbh_2025_jahresabschluss.pdf,
+     quotes: ["außer dem Segment Biotech (-4,1 %) und Industry (-8,7 %)"]}
+  - {entity: fisher_scientific_gmbh, period: FY2025, metric: revenue_growth, value: 8.3, unit: "%",
+     region: null, segment: total, grade: A, page: 2,
+     file: data/raw/registers/de_fisher-scientific-gmbh_2025_jahresabschluss.pdf,
+     quotes: ["ein um 8,3 % auf EUR 254,6 Mio"]}
+  # VWR International GmbH (Avantor's German lab company) – statements on the revenue decline
+  - {entity: vwr_international_gmbh, period: FY2024, metric: revenue_growth, value: -4, unit: "%",
+     region: null, segment: "statement: reasons for the decline", grade: A, page: 2,
+     file: data/raw/registers/de_vwr-international-gmbh_2024_aufsichtsratsprotokoll.pdf,
+     quotes: ["dass die Umsatzerlöse um rund 4 % zurückgegangen sind, was vor allem auf die anhaltenden geopolitischen Spannungen, die hohen Energiekosten sowie die Zurückhaltung der öffentlichen Hand bei Forschungsausgaben zurückzuführen ist"],
+     note: "supervisory board minutes, management's explanation of FY2024; 'rund' = approximately"}
+  - {entity: vwr_international_gmbh, period: FY2025, metric: revenue_growth, value: -0.59, unit: "%",
+     region: null, segment: total, grade: A, page: 4,
+     file: data/raw/registers/de_vwr-international-gmbh_2025_jahresabschluss.pdf,
+     quotes: ["Der Umsatz lag mit TEuro 559.290 um 0,59 % unter dem Vorjahreswert"]}
+  - {entity: vwr_international_gmbh, period: FY2025, metric: revenue_change, value: -3322, unit: EUR_k,
+     region: null, segment: "statement: decline mainly from sales in Germany", grade: A, page: 4,
+     file: data/raw/registers/de_vwr-international-gmbh_2025_jahresabschluss.pdf,
+     quotes: ["Der Rückgang der Umsatzerlöse beläuft sich insgesamt auf TEuro 3.322 und resultiert vor allem aus den Verkäufen in Deutschland"]}
+  # Merck CMD 2025: DS customers are small buyers
+  - {entity: merck_kgaa, period: FY2025, metric: ds_customers_share_spend_below_threshold, value: 90, unit: "%",
+     region: Global, segment: "Discovery Solutions customers spending < EUR 100k per year (lower bound, '>90%')",
+     grade: A, page: 10, file: data/raw/merck/de_merck-kgaa_2025_cmd-life-science-presentation.pdf,
+     quotes: [">90% of our customers spend less then €100k per year"],
+     note: "CMD 2025 Life Science p.10 (Discovery Solutions slide); 'then' as printed"}
+  - {entity: merck_kgaa, period: FY2025, metric: ds_customer_spend_cutoff, value: 100, unit: EUR_k,
+     region: Global, segment: "annual spend per Discovery Solutions customer (cut-off used in the CMD statement)",
+     grade: A, page: 10, file: data/raw/merck/de_merck-kgaa_2025_cmd-life-science-presentation.pdf,
+     quotes: [">90% of our customers spend less then €100k per year"]}
+  - {entity: vwr_international_gmbh, period: FY2024, metric: revenue, value: 387182, unit: EUR_k,
+     region: Deutschland, segment: null, grade: A, page: 13,
+     file: data/raw/registers/de_vwr-international-gmbh_2025_jahresabschluss.pdf,
+     quotes: ["Deutschland 376.328 387.182"], value_fragment: "387.182",
+     note: "prior-year column of the FY2025 revenue split by destination (current year 376.328 is stored by the PDF extraction)"}

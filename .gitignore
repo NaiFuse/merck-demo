@@ -27,3 +27,6 @@ venv/
 
 # Tool-generated mirror of CLAUDE.md (not ours)
 AGENTS.md
+data/reports/
+data/refresh/
+data/*.duckdb.bak
